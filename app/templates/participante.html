@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discovery — {{ proyecto.cliente }}</title>
+  <style>
+    :root { --navy:#001233; --cian:#2CC4DC; --azul:#348AB7; --violeta:#4C448D; --bg:#f6f8fa; --texto:#16263b; --muted:#64748b; --borde:#e2e8f0; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--texto); margin: 0; }
+    header { background: var(--navy); color: #fff; padding: 16px 20px; }
+    header .brand span { color: var(--cian); }
+    .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+    .saber-card { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
+    .saber-card h3 { margin: 0 0 6px; color: var(--violeta); font-size: 14px; }
+    .progreso-barra { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; margin: 10px 0 16px; }
+    .progreso-barra > div { background: var(--cian); height: 100%; transition: width .3s; }
+    #chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 90px; }
+    .msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; font-size: 15px; line-height: 1.4; }
+    .msg.agente { background: #fff; border: 1px solid var(--borde); align-self: flex-start; }
+    .msg.participante { background: var(--azul); color: #fff; align-self: flex-end; }
+    form.entrada { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--borde); padding: 10px 12px; display: flex; gap: 8px; align-items: center; }
+    form.entrada textarea { flex: 1; resize: none; border: 1px solid var(--borde); border-radius: 10px; padding: 10px; font-size: 15px; max-height: 80px; }
+    .icon-btn { background: none; border: 1px solid var(--borde); border-radius: 10px; width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
+    .icon-btn.grabando { background: #fee2e2; border-color: #fca5a5; }
+    .btn-enviar { background: var(--azul); color: #fff; border: none; border-radius: 10px; padding: 0 16px; height: 42px; font-weight: 600; cursor: pointer; }
+    .cerrado-aviso { text-align: center; padding: 40px 20px; color: var(--muted); }
+    input[type=file] { display: none; }
+  </style>
+</head>
+<body>
+<header><div class="brand">{{ brand_name }} <span>Discovery</span> — {{ proyecto.cliente }}</div></header>
+<div class="wrap">
+  {% if proyecto.lo_que_ya_sabemos and proyecto.lo_que_ya_sabemos.strip() %}
+  <div class="saber-card">
+    <h3>Esto es lo que ya sabemos de su negocio</h3>
+    <p style="margin:0;">{{ proyecto.lo_que_ya_sabemos }}</p>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px;">Si algo no corresponde, dígalo en la conversación — lo tomamos en cuenta.</p>
+  </div>
+  {% endif %}
+
+  <div class="progreso-barra"><div id="barra" style="width:0%;"></div></div>
+
+  <div id="chat">
+    {% for t in conversacion %}
+    <div class="msg {{ 'agente' if t.rol == 'agente' else 'participante' }}">{{ t.texto }}</div>
+    {% endfor %}
+  </div>
+
+  {% if cerrado %}
+  <div class="cerrado-aviso">Esta conversación ya terminó — gracias por su tiempo.</div>
+  {% endif %}
+</div>
+
+{% if not cerrado %}
+<form class="entrada" id="form-entrada">
+  <button type="button" class="icon-btn" id="btn-adjunto" title="Adjuntar archivo">📎</button>
+  <input type="file" id="input-archivo">
+  <button type="button" class="icon-btn" id="btn-audio" title="Grabar audio">🎙️</button>
+  <textarea id="texto" rows="1" placeholder="Escriba su respuesta..."></textarea>
+  <button type="submit" class="btn-enviar">Enviar</button>
+</form>
+{% endif %}
+
+<script>
+const TOKEN = "{{ p.token }}";
+const chat = document.getElementById("chat");
+const barra = document.getElementById("barra");
+
+function agregarMensaje(rol, texto) {
+  const div = document.createElement("div");
+  div.className = "msg " + (rol === "agente" ? "agente" : "participante");
+  div.textContent = texto;
+  chat.appendChild(div);
+  window.scrollTo(0, document.body.scrollHeight);
+  return div;
+}
+
+function actualizarProgreso(progreso) {
+  if (!progreso || !progreso.total) return;
+  barra.style.width = Math.min(100, Math.round((progreso.cubiertos / progreso.total) * 100)) + "%";
+}
+
+function cerrarChat() {
+  document.getElementById("form-entrada").remove();
+  const aviso = document.createElement("div");
+  aviso.className = "cerrado-aviso";
+  aviso.textContent = "Esta conversación ya terminó — gracias por su tiempo.";
+  document.querySelector(".wrap").appendChild(aviso);
+}
+
+async function enviarTexto(texto) {
+  agregarMensaje("participante", texto);
+  const bubble = agregarMensaje("agente", "…");
+  try {
+    const resp = await fetch(`/r/${TOKEN}/mensaje`, {
+      method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({texto}),
+    });
+    const data = await resp.json();
+    bubble.textContent = data.mensaje;
+    actualizarProgreso(data.progreso);
+    if (data.cerrado) cerrarChat();
+  } catch (e) {
+    bubble.textContent = "Hubo un error de conexión. Por favor intente de nuevo.";
+  }
+}
+
+document.getElementById("form-entrada").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const campo = document.getElementById("texto");
+  const texto = campo.value.trim();
+  if (!texto) return;
+  campo.value = "";
+  enviarTexto(texto);
+});
+
+// Adjuntos
+document.getElementById("btn-adjunto").addEventListener("click", () => {
+  document.getElementById("input-archivo").click();
+});
+document.getElementById("input-archivo").addEventListener("change", async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("file", file);
+  await fetch(`/r/${TOKEN}/adjunto`, {method: "POST", body: fd});
+  agregarMensaje("participante", `📎 adjunté "${file.name}"`);
+  ev.target.value = "";
+});
+
+// Audio
+let mediaRecorder, chunks = [];
+const btnAudio = document.getElementById("btn-audio");
+btnAudio.addEventListener("click", async () => {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    chunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    mediaRecorder.onstop = async () => {
+      btnAudio.classList.remove("grabando");
+      stream.getTracks().forEach((t) => t.stop());
+      const blob = new Blob(chunks, {type: "audio/webm"});
+      const bubble = agregarMensaje("participante", "🎙️ (audio enviado, transcribiendo...)");
+      const bubbleAgente = agregarMensaje("agente", "…");
+      const fd = new FormData();
+      fd.append("file", blob, "audio.webm");
+      try {
+        const resp = await fetch(`/r/${TOKEN}/audio`, {method: "POST", body: fd});
+        const data = await resp.json();
+        if (data.transcripcion) bubble.textContent = "🎙️ " + data.transcripcion;
+        bubbleAgente.textContent = data.mensaje || "No se pudo procesar el audio, intente escribir la respuesta.";
+        actualizarProgreso(data.progreso);
+        if (data.cerrado) cerrarChat();
+      } catch (e) {
+        bubbleAgente.textContent = "No se pudo procesar el audio. Intente escribir la respuesta.";
+      }
+    };
+    mediaRecorder.start();
+    btnAudio.classList.add("grabando");
+  } catch (e) {
+    alert("No se pudo acceder al micrófono.");
+  }
+});
+</script>
+</body>
+</html>

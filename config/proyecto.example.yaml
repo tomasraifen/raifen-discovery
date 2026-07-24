@@ -1,0 +1,47 @@
+# Config del proyecto de discovery -- UN archivo por instancia (una instancia por cliente).
+# Catequil arma este archivo a partir de:
+#   - knowledge/proyectos/templates/relevamiento_negocio/banco_preguntas_generico.md (base)
+#   - knowledge/proyectos/verticales_negocio/[vertical].md (si existe, preguntas especificas)
+#   - contexto previo real del cliente (Ekeko/Nexus) para "lo_que_ya_sabemos"
+# en el repo Raifen_Claude_System. No se lee en vivo desde ahi -- este YAML es autonomo,
+# se copia/adapta a mano por Catequil al levantar cada instancia nueva.
+
+cliente: "Nombre Cliente"
+proyecto: "Datalake <Cliente>"
+vertical: "retail"  # solo informativo/trazabilidad -- las preguntas ya estan fusionadas abajo
+correo_aprobacion: "contacto@cliente.com"  # a quien se le manda el documento formal de reglas de negocio
+
+# Contexto previo que Raifen ya tiene del cliente antes de arrancar el relevamiento
+# formal (notas de Ekeko, discovery comercial, investigacion de Nexus). Se le muestra
+# al participante de entrada, transparente -- si algo no corresponde, lo dice en el chat
+# y queda registrado como correccion.
+lo_que_ya_sabemos: |
+  [Texto libre. Vacio si todavia no hay contexto previo real -- no se inventa.]
+
+# Banco de preguntas efectivo para este proyecto: generico + especifico de vertical, ya
+# fusionado y priorizado por Catequil (no todas las preguntas del banco generico aplican
+# igual a todos los clientes).
+preguntas:
+  - id: contexto_negocio
+    texto: "Cuentame en tus palabras que hace la empresa y como genera ingresos hoy."
+  - id: procesos_clave
+    texto: "Cuales son los 2-3 procesos que mas les interesa visibilizar o mejorar con datos?"
+  - id: sistemas_actuales
+    texto: "Que sistemas usan hoy (ERP, CRM, planillas, sistema propio) y quien es dueno de cada uno?"
+  - id: kpis_actuales
+    texto: "Que miden hoy, como lo calculan, y quien consume esos reportes?"
+  - id: dolor_principal
+    texto: "Que decision no pueden tomar hoy por falta de datos o visibilidad?"
+  - id: reglas_negocio
+    texto: "Que cuenta como [evento de negocio clave]? Hay excepciones o casos borde?"
+  - id: gobernanza
+    texto: "Quien aprueba un cambio en la definicion de una metrica o regla de negocio?"
+  - id: prioridades
+    texto: "De todo esto, que necesitan ver primero?"
+
+# Cada persona del cliente que va a completar su propio modulo. token se genera al
+# inicializar la DB (ver cli.py) -- no se pisa a mano.
+participantes:
+  - nombre: "Nombre Apellido"
+    cargo: "Cargo"
+    email: "persona@cliente.com"

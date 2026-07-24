@@ -1,0 +1,30 @@
+# Stack de Raifen Discovery para Coolify. Una instancia = un cliente.
+# `config/proyecto.yaml` NO se commitea al repo (tiene datos del cliente, ver .gitignore)
+# -- se monta como volumen/bind al deployar cada instancia, así el repo se queda
+# genérico y reutilizable para el próximo cliente.
+# Sin ports: al host (evita conflicto con otros servicios) — se enruta via Traefik/dominio.
+
+services:
+  discovery:
+    build: .
+    container_name: raifen-discovery
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      TRANSCRIBE_API_KEY: ${TRANSCRIBE_API_KEY}
+      TRANSCRIBE_URL: ${TRANSCRIBE_URL:-https://transcribe.raifen.ai}
+      N8N_MARKDOWN_WEBHOOK: ${N8N_MARKDOWN_WEBHOOK:-https://n8n.raifen.ai/webhook/markdown-raifen}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER}
+      BASIC_AUTH_PASS: ${BASIC_AUTH_PASS}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      DB_PATH: /data/discovery.db
+      UPLOADS_DIR: /data/adjuntos
+    volumes:
+      - discovery-data:/data
+      - ./config/proyecto.yaml:/app/config/proyecto.yaml:ro
+
+volumes:
+  discovery-data:

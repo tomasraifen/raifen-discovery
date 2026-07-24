@@ -1,0 +1,39 @@
+{% extends "_base.html" %}
+{% block title %}{{ p.nombre }} — {{ proyecto.cliente }}{% endblock %}
+{% block content %}
+  <p><a href="/">← volver</a></p>
+  <div class="card">
+    <h1 style="margin:0 0 4px;">{{ p.nombre }}</h1>
+    <p class="muted" style="margin:0;">{{ p.cargo or "—" }} · {{ p.email or "sin email" }} · <span class="pill {{ p.estado }}">{{ p.estado }}</span></p>
+    <p class="muted">Link personal: <a href="{{ link }}" target="_blank">{{ link }}</a></p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Conversación</h2>
+    {% for t in conversacion %}
+      <p><b>{{ "Agente" if t.rol == "agente" else p.nombre }}:</b> {{ t.texto }}</p>
+    {% endfor %}
+    {% if not conversacion %}<p class="muted">Todavía no arrancó la conversación.</p>{% endif %}
+  </div>
+
+  {% if adjuntos %}
+  <div class="card">
+    <h2 style="margin-top:0;">Adjuntos</h2>
+    <table>
+      <tr><th>Tipo</th><th>Archivo</th></tr>
+      {% for a in adjuntos %}
+      <tr><td>{{ a.tipo }}</td><td>{{ a.nombre_archivo }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;">Agregar regla de negocio desde esta charla</h2>
+    <form method="post" action="/admin/reglas">
+      <input type="hidden" name="participante_id" value="{{ p.id }}">
+      <textarea name="texto" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--borde);" placeholder="Ej: un cliente se considera activo cuando..."></textarea>
+      <div style="margin-top:8px;"><button class="btn secundario" type="submit">Agregar</button></div>
+    </form>
+  </div>
+{% endblock %}
