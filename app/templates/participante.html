@@ -7,164 +7,228 @@
   <style>
     :root { --navy:#001233; --cian:#2CC4DC; --azul:#348AB7; --violeta:#4C448D; --bg:#f6f8fa; --texto:#16263b; --muted:#64748b; --borde:#e2e8f0; }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--texto); margin: 0; }
+    body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--texto); margin: 0; padding-bottom: 60px; }
     header { background: var(--navy); color: #fff; padding: 16px 20px; }
     header .brand span { color: var(--cian); }
     .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
     .saber-card { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
     .saber-card h3 { margin: 0 0 6px; color: var(--violeta); font-size: 14px; }
-    .progreso-barra { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; margin: 10px 0 16px; }
+    .saber-card textarea { width: 100%; margin-top: 8px; border: 1px solid var(--borde); border-radius: 8px; padding: 8px; font-size: 14px; }
+    .progreso-barra { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; margin: 10px 0 20px; }
     .progreso-barra > div { background: var(--cian); height: 100%; transition: width .3s; }
-    #chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 90px; }
-    .msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; font-size: 15px; line-height: 1.4; }
-    .msg.agente { background: #fff; border: 1px solid var(--borde); align-self: flex-start; }
-    .msg.participante { background: var(--azul); color: #fff; align-self: flex-end; }
-    form.entrada { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--borde); padding: 10px 12px; display: flex; gap: 8px; align-items: center; }
-    form.entrada textarea { flex: 1; resize: none; border: 1px solid var(--borde); border-radius: 10px; padding: 10px; font-size: 15px; max-height: 80px; }
-    .icon-btn { background: none; border: 1px solid var(--borde); border-radius: 10px; width: 42px; height: 42px; cursor: pointer; font-size: 18px; }
+    .tema { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+    .tema h2 { margin: 0 0 14px; font-size: 17px; color: var(--navy); }
+    .pregunta { margin-bottom: 18px; }
+    .pregunta label.texto-pregunta { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14.5px; }
+    .pregunta textarea, .pregunta input[type=text] { width: 100%; border: 1px solid var(--borde); border-radius: 8px; padding: 10px; font-size: 14.5px; font-family: inherit; }
+    .opciones label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 4px 0; font-size: 14.5px; }
+    .fila-audio { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .icon-btn { background: none; border: 1px solid var(--borde); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
     .icon-btn.grabando { background: #fee2e2; border-color: #fca5a5; }
-    .btn-enviar { background: var(--azul); color: #fff; border: none; border-radius: 10px; padding: 0 16px; height: 42px; font-weight: 600; cursor: pointer; }
-    .cerrado-aviso { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .guardado { font-size: 12.5px; color: #15803d; opacity: 0; transition: opacity .3s; }
+    .guardado.visible { opacity: 1; }
+    .btn-finalizar { display: block; width: 100%; background: var(--violeta); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .cerrado-aviso { text-align: center; padding: 20px; color: #15803d; background: #dcfce7; border-radius: 10px; margin-bottom: 16px; }
     input[type=file] { display: none; }
   </style>
 </head>
 <body>
 <header><div class="brand">{{ brand_name }} <span>Discovery</span> — {{ proyecto.cliente }}</div></header>
 <div class="wrap">
+  {% if p.estado == "completado" %}
+  <div class="cerrado-aviso">✓ Ya marcaste este formulario como finalizado — gracias. Podés seguir editando tus respuestas si querés agregar algo.</div>
+  {% endif %}
+
   {% if proyecto.lo_que_ya_sabemos and proyecto.lo_que_ya_sabemos.strip() %}
   <div class="saber-card">
     <h3>Esto es lo que ya sabemos de su negocio</h3>
     <p style="margin:0;">{{ proyecto.lo_que_ya_sabemos }}</p>
-    <p class="muted" style="margin:6px 0 0;font-size:12.5px;">Si algo no corresponde, dígalo en la conversación — lo tomamos en cuenta.</p>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px;">Si algo no corresponde, indíquelo acá:</p>
+    <textarea id="correcciones" rows="2" placeholder="Ej: ya no usamos ese sistema, lo cambiamos en marzo...">{{ p.correcciones_ya_sabemos or "" }}</textarea>
+    <span class="guardado" id="guardado-correcciones">Guardado ✓</span>
   </div>
   {% endif %}
 
-  <div class="progreso-barra"><div id="barra" style="width:0%;"></div></div>
+  <div class="progreso-barra"><div id="barra" style="width: {{ (progreso.cubiertos / progreso.total * 100) if progreso.total else 0 }}%;"></div></div>
 
-  <div id="chat">
-    {% for t in conversacion %}
-    <div class="msg {{ 'agente' if t.rol == 'agente' else 'participante' }}">{{ t.texto }}</div>
+  <form id="form-discovery">
+    {% for tema in temas %}
+    <div class="tema">
+      <h2>{{ tema.titulo }}</h2>
+      {% for pregunta in tema.preguntas %}
+        {% set r = respuestas.get(pregunta.id) %}
+        <div class="pregunta" data-pregunta-id="{{ pregunta.id }}" data-tipo="{{ pregunta.tipo }}">
+          <label class="texto-pregunta">{{ pregunta.texto }}</label>
+
+          {% if pregunta.tipo == "texto_libre" %}
+            <textarea rows="2" class="campo-valor">{{ r.valor if r else "" }}</textarea>
+            <div class="fila-audio">
+              <button type="button" class="icon-btn btn-audio">🎙️ Grabar respuesta</button>
+              <span class="guardado">Guardado ✓</span>
+            </div>
+
+          {% elif pregunta.tipo == "opcion_unica" %}
+            <div class="opciones">
+              {% for op in pregunta.opciones %}
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="{{ op }}" {% if r and r.valor == op %}checked{% endif %}> {{ op }}</label>
+              {% endfor %}
+            </div>
+            <span class="guardado">Guardado ✓</span>
+
+          {% elif pregunta.tipo == "opcion_multiple" %}
+            <div class="opciones">
+              {% for op in pregunta.opciones %}
+              <label><input type="checkbox" class="campo-valor" value="{{ op }}" {% if r and op in (r.valor or []) %}checked{% endif %}> {{ op }}</label>
+              {% endfor %}
+            </div>
+            <span class="guardado">Guardado ✓</span>
+
+          {% elif pregunta.tipo == "booleano" %}
+            <div class="opciones">
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="si" {% if r and r.valor == "si" %}checked{% endif %}> Sí</label>
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="no" {% if r and r.valor == "no" %}checked{% endif %}> No</label>
+            </div>
+            <span class="guardado">Guardado ✓</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
     {% endfor %}
-  </div>
 
-  {% if cerrado %}
-  <div class="cerrado-aviso">Esta conversación ya terminó — gracias por su tiempo.</div>
-  {% endif %}
+    <button type="button" class="icon-btn" id="btn-adjunto" style="margin-bottom:12px;">📎 Adjuntar archivo o pantallazo</button>
+    <input type="file" id="input-archivo">
+
+    <button type="submit" class="btn-finalizar">Finalizar formulario</button>
+  </form>
 </div>
-
-{% if not cerrado %}
-<form class="entrada" id="form-entrada">
-  <button type="button" class="icon-btn" id="btn-adjunto" title="Adjuntar archivo">📎</button>
-  <input type="file" id="input-archivo">
-  <button type="button" class="icon-btn" id="btn-audio" title="Grabar audio">🎙️</button>
-  <textarea id="texto" rows="1" placeholder="Escriba su respuesta..."></textarea>
-  <button type="submit" class="btn-enviar">Enviar</button>
-</form>
-{% endif %}
 
 <script>
 const TOKEN = "{{ p.token }}";
-const chat = document.getElementById("chat");
 const barra = document.getElementById("barra");
-
-function agregarMensaje(rol, texto) {
-  const div = document.createElement("div");
-  div.className = "msg " + (rol === "agente" ? "agente" : "participante");
-  div.textContent = texto;
-  chat.appendChild(div);
-  window.scrollTo(0, document.body.scrollHeight);
-  return div;
-}
 
 function actualizarProgreso(progreso) {
   if (!progreso || !progreso.total) return;
   barra.style.width = Math.min(100, Math.round((progreso.cubiertos / progreso.total) * 100)) + "%";
 }
 
-function cerrarChat() {
-  document.getElementById("form-entrada").remove();
-  const aviso = document.createElement("div");
-  aviso.className = "cerrado-aviso";
-  aviso.textContent = "Esta conversación ya terminó — gracias por su tiempo.";
-  document.querySelector(".wrap").appendChild(aviso);
+function mostrarGuardado(el) {
+  el.classList.add("visible");
+  setTimeout(() => el.classList.remove("visible"), 1500);
 }
 
-async function enviarTexto(texto) {
-  agregarMensaje("participante", texto);
-  const bubble = agregarMensaje("agente", "…");
-  try {
-    const resp = await fetch(`/r/${TOKEN}/mensaje`, {
-      method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({texto}),
-    });
+async function guardarRespuesta(preguntaId, valor, fuente, guardadoEl) {
+  const resp = await fetch(`/r/${TOKEN}/respuesta`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({pregunta_id: preguntaId, valor, fuente}),
+  });
+  if (resp.ok) {
     const data = await resp.json();
-    bubble.textContent = data.mensaje;
     actualizarProgreso(data.progreso);
-    if (data.cerrado) cerrarChat();
-  } catch (e) {
-    bubble.textContent = "Hubo un error de conexión. Por favor intente de nuevo.";
+    if (guardadoEl) mostrarGuardado(guardadoEl);
   }
 }
 
-document.getElementById("form-entrada").addEventListener("submit", (ev) => {
-  ev.preventDefault();
-  const campo = document.getElementById("texto");
-  const texto = campo.value.trim();
-  if (!texto) return;
-  campo.value = "";
-  enviarTexto(texto);
+document.querySelectorAll(".pregunta").forEach((div) => {
+  const preguntaId = div.dataset.preguntaId;
+  const tipo = div.dataset.tipo;
+  const guardadoEl = div.querySelector(".guardado");
+
+  if (tipo === "texto_libre") {
+    const textarea = div.querySelector("textarea");
+    textarea.addEventListener("blur", () => {
+      if (textarea.value.trim()) guardarRespuesta(preguntaId, textarea.value.trim(), "texto", guardadoEl);
+    });
+  } else if (tipo === "opcion_unica" || tipo === "booleano") {
+    div.querySelectorAll("input[type=radio]").forEach((r) => {
+      r.addEventListener("change", () => guardarRespuesta(preguntaId, r.value, "texto", guardadoEl));
+    });
+  } else if (tipo === "opcion_multiple") {
+    div.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const seleccionadas = Array.from(div.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value);
+        guardarRespuesta(preguntaId, seleccionadas, "texto", guardadoEl);
+      });
+    });
+  }
 });
 
+// Correcciones a "lo que ya sabemos"
+const correccionesEl = document.getElementById("correcciones");
+if (correccionesEl) {
+  correccionesEl.addEventListener("blur", async () => {
+    const resp = await fetch(`/r/${TOKEN}/correcciones`, {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({texto: correccionesEl.value}),
+    });
+    if (resp.ok) mostrarGuardado(document.getElementById("guardado-correcciones"));
+  });
+}
+
 // Adjuntos
-document.getElementById("btn-adjunto").addEventListener("click", () => {
-  document.getElementById("input-archivo").click();
-});
+document.getElementById("btn-adjunto").addEventListener("click", () => document.getElementById("input-archivo").click());
 document.getElementById("input-archivo").addEventListener("change", async (ev) => {
   const file = ev.target.files[0];
   if (!file) return;
   const fd = new FormData();
   fd.append("file", file);
   await fetch(`/r/${TOKEN}/adjunto`, {method: "POST", body: fd});
-  agregarMensaje("participante", `📎 adjunté "${file.name}"`);
+  alert(`Adjunté "${file.name}"`);
   ev.target.value = "";
 });
 
-// Audio
+// Audio por pregunta (solo texto_libre)
 let mediaRecorder, chunks = [];
-const btnAudio = document.getElementById("btn-audio");
-btnAudio.addEventListener("click", async () => {
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-    return;
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-    chunks = [];
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-    mediaRecorder.onstop = async () => {
-      btnAudio.classList.remove("grabando");
-      stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(chunks, {type: "audio/webm"});
-      const bubble = agregarMensaje("participante", "🎙️ (audio enviado, transcribiendo...)");
-      const bubbleAgente = agregarMensaje("agente", "…");
-      const fd = new FormData();
-      fd.append("file", blob, "audio.webm");
-      try {
-        const resp = await fetch(`/r/${TOKEN}/audio`, {method: "POST", body: fd});
-        const data = await resp.json();
-        if (data.transcripcion) bubble.textContent = "🎙️ " + data.transcripcion;
-        bubbleAgente.textContent = data.mensaje || "No se pudo procesar el audio, intente escribir la respuesta.";
-        actualizarProgreso(data.progreso);
-        if (data.cerrado) cerrarChat();
-      } catch (e) {
-        bubbleAgente.textContent = "No se pudo procesar el audio. Intente escribir la respuesta.";
-      }
-    };
-    mediaRecorder.start();
-    btnAudio.classList.add("grabando");
-  } catch (e) {
-    alert("No se pudo acceder al micrófono.");
-  }
+document.querySelectorAll(".btn-audio").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const div = btn.closest(".pregunta");
+    const preguntaId = div.dataset.preguntaId;
+    const textarea = div.querySelector("textarea");
+    const guardadoEl = div.querySelector(".guardado");
+
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+      chunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        btn.classList.remove("grabando");
+        btn.textContent = "🎙️ Grabar respuesta";
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, {type: "audio/webm"});
+        const fd = new FormData();
+        fd.append("file", blob, "audio.webm");
+        btn.disabled = true;
+        btn.textContent = "Transcribiendo...";
+        try {
+          const resp = await fetch(`/r/${TOKEN}/audio/${preguntaId}`, {method: "POST", body: fd});
+          const data = await resp.json();
+          if (data.texto) {
+            textarea.value = data.texto;
+            guardarRespuesta(preguntaId, data.texto, "audio", guardadoEl);
+          }
+        } catch (e) {
+          alert("No se pudo transcribir el audio. Podés escribir la respuesta directamente.");
+        }
+        btn.disabled = false;
+        btn.textContent = "🎙️ Grabar respuesta";
+      };
+      mediaRecorder.start();
+      btn.classList.add("grabando");
+      btn.textContent = "⏹ Detener grabación";
+    } catch (e) {
+      alert("No se pudo acceder al micrófono.");
+    }
+  });
+});
+
+document.getElementById("form-discovery").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  await fetch(`/r/${TOKEN}/finalizar`, {method: "POST"});
+  window.location.reload();
 });
 </script>
 </body>

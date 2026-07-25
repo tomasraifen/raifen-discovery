@@ -1,6 +1,7 @@
-"""Persistencia SQLite: participantes de UN proyecto (una instancia = un cliente),
-cada uno con su propia conversacion, adjuntos, y las reglas de negocio que Catequil va
-curando a partir de lo relevado."""
+"""Persistencia SQLite: participantes de UN proyecto (una instancia = un cliente), cada
+uno con sus respuestas al formulario tipado (sin IA -- cada pregunta tiene un tipo fijo y
+se guarda tal cual la completa el participante), adjuntos, y las reglas de negocio que
+Catequil va curando a partir de lo relevado."""
 import json
 import secrets
 import sqlite3
@@ -18,18 +19,18 @@ CREATE TABLE IF NOT EXISTS participantes (
     email TEXT,
     creado_en TEXT NOT NULL,
     estado TEXT NOT NULL DEFAULT 'pendiente',
-    conversacion_json TEXT NOT NULL DEFAULT '[]',
-    turnos INTEGER NOT NULL DEFAULT 0,
+    respuestas_json TEXT NOT NULL DEFAULT '{}',
+    correcciones_ya_sabemos TEXT,
     completado_en TEXT
 );
 
 CREATE TABLE IF NOT EXISTS adjuntos (
     id TEXT PRIMARY KEY,
     participante_id TEXT NOT NULL,
+    pregunta_id TEXT,
     tipo TEXT NOT NULL,  -- 'audio' | 'archivo'
     nombre_archivo TEXT NOT NULL,
     ruta TEXT NOT NULL,
-    turno_indice INTEGER,
     creado_en TEXT NOT NULL
 );
 
@@ -51,8 +52,9 @@ CREATE TABLE IF NOT EXISTS aprobaciones (
 );
 """
 
-# Estados de participante: pendiente -> en_progreso -> completado
-MAX_TURNOS = 40  # 20 idas y vueltas -- techo por si el agente no cierra solo
+# Estados de participante: pendiente -> en_progreso -> completado (completado = el
+# participante hizo click en "Finalizar", no implica que respondio todo -- puede volver
+# a editar despues, no queda bloqueado).
 
 
 def _conn():
@@ -68,9 +70,7 @@ def init_db():
 
 def sembrar_participantes(participantes: list[dict]) -> list[dict]:
     """Crea en la DB los participantes definidos en config/proyecto.yaml que todavia no
-    existen (match por email). Devuelve la lista completa con sus tokens -- se usa para
-    armar los links que se comparten con cada stakeholder. Idempotente: correr de nuevo
-    no duplica a quien ya esta."""
+    existen (match por email). Idempotente: correr de nuevo no duplica a quien ya esta."""
     creados = []
     with _conn() as c:
         existentes = {r["email"] for r in c.execute("SELECT email FROM participantes").fetchall() if r["email"]}
@@ -91,7 +91,7 @@ def sembrar_participantes(participantes: list[dict]) -> list[dict]:
 def listar_participantes() -> list[dict]:
     with _conn() as c:
         rows = c.execute(
-            "SELECT id, token, nombre, cargo, email, estado, turnos, completado_en FROM participantes ORDER BY creado_en"
+            "SELECT id, token, nombre, cargo, email, estado, respuestas_json, completado_en FROM participantes ORDER BY creado_en"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -108,38 +108,43 @@ def obtener_por_token(token: str) -> dict | None:
         return dict(row) if row else None
 
 
-def get_conversacion(p: dict) -> list[dict]:
-    return json.loads(p["conversacion_json"])
+def get_respuestas(p: dict) -> dict:
+    return json.loads(p["respuestas_json"])
 
 
-def marcar_en_progreso(pid: str):
-    with _conn() as c:
-        c.execute("UPDATE participantes SET estado = 'en_progreso' WHERE id = ? AND estado = 'pendiente'", (pid,))
-
-
-def append_turno(pid: str, conversacion: list[dict]):
+def guardar_respuesta(pid: str, pregunta_id: str, valor, fuente: str = "texto"):
+    """fuente: 'texto' (escrito a mano) | 'audio' (transcripto, editable despues)."""
+    p = obtener(pid)
+    respuestas = get_respuestas(p)
+    respuestas[pregunta_id] = {"valor": valor, "fuente": fuente}
+    nuevo_estado = "en_progreso" if p["estado"] == "pendiente" else p["estado"]
     with _conn() as c:
         c.execute(
-            "UPDATE participantes SET conversacion_json = ?, turnos = ? WHERE id = ?",
-            (json.dumps(conversacion, ensure_ascii=False), len(conversacion), pid),
+            "UPDATE participantes SET respuestas_json = ?, estado = ? WHERE id = ?",
+            (json.dumps(respuestas, ensure_ascii=False), nuevo_estado, pid),
         )
 
 
-def marcar_completado(pid: str, conversacion: list[dict]):
+def guardar_correcciones(pid: str, texto: str):
+    with _conn() as c:
+        c.execute("UPDATE participantes SET correcciones_ya_sabemos = ? WHERE id = ?", (texto, pid))
+
+
+def marcar_completado(pid: str):
     with _conn() as c:
         c.execute(
-            "UPDATE participantes SET conversacion_json = ?, turnos = ?, estado = 'completado', completado_en = ? WHERE id = ?",
-            (json.dumps(conversacion, ensure_ascii=False), len(conversacion), datetime.now(timezone.utc).isoformat(), pid),
+            "UPDATE participantes SET estado = 'completado', completado_en = ? WHERE id = ?",
+            (datetime.now(timezone.utc).isoformat(), pid),
         )
 
 
-def agregar_adjunto(participante_id: str, tipo: str, nombre_archivo: str, ruta: str, turno_indice: int | None = None) -> str:
+def agregar_adjunto(participante_id: str, tipo: str, nombre_archivo: str, ruta: str, pregunta_id: str | None = None) -> str:
     aid = str(uuid.uuid4())
     with _conn() as c:
         c.execute(
-            "INSERT INTO adjuntos (id, participante_id, tipo, nombre_archivo, ruta, turno_indice, creado_en) "
+            "INSERT INTO adjuntos (id, participante_id, pregunta_id, tipo, nombre_archivo, ruta, creado_en) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (aid, participante_id, tipo, nombre_archivo, ruta, turno_indice, datetime.now(timezone.utc).isoformat()),
+            (aid, participante_id, pregunta_id, tipo, nombre_archivo, ruta, datetime.now(timezone.utc).isoformat()),
         )
     return aid
 
@@ -196,10 +201,6 @@ def listar_aprobaciones() -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def progreso(p: dict, total_temas: int) -> dict:
-    """Aproximacion simple: turnos de cliente contados / total de temas del proyecto,
-    tope en total. La cobertura real (que temas se cubrieron) la decide interview.py
-    turno a turno, igual que en Smart Blueprint -- esto es solo para la barra visual
-    cuando todavia no corrio la clasificacion de ese turno."""
-    turnos_cliente = len([t for t in json.loads(p["conversacion_json"]) if t["rol"] == "participante"])
-    return {"cubiertos": min(turnos_cliente, total_temas), "total": total_temas}
+def progreso(p: dict, total_preguntas: int) -> dict:
+    respondidas = len(get_respuestas(p))
+    return {"cubiertos": min(respondidas, total_preguntas), "total": total_preguntas}

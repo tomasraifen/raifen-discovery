@@ -5,39 +5,78 @@
 #   - contexto previo real del cliente (Ekeko/Nexus) para "lo_que_ya_sabemos"
 # en el repo Raifen_Claude_System. No se lee en vivo desde ahi -- este YAML es autonomo,
 # se copia/adapta a mano por Catequil al levantar cada instancia nueva.
+#
+# Sin IA en el flujo: cada pregunta tiene un tipo fijo y se renderiza como campo de
+# formulario real. tipo: texto_libre | opcion_unica | opcion_multiple | booleano
+# (opcion_unica/opcion_multiple requieren "opciones").
 
 cliente: "Nombre Cliente"
 proyecto: "Datalake <Cliente>"
-vertical: "retail"  # solo informativo/trazabilidad -- las preguntas ya estan fusionadas abajo
+vertical: "retail"  # solo informativo/trazabilidad
 correo_aprobacion: "contacto@cliente.com"  # a quien se le manda el documento formal de reglas de negocio
 
 # Contexto previo que Raifen ya tiene del cliente antes de arrancar el relevamiento
 # formal (notas de Ekeko, discovery comercial, investigacion de Nexus). Se le muestra
-# al participante de entrada, transparente -- si algo no corresponde, lo dice en el chat
-# y queda registrado como correccion.
+# al participante de entrada, transparente -- si algo no corresponde, lo indica en el
+# campo de correcciones del formulario.
 lo_que_ya_sabemos: |
   [Texto libre. Vacio si todavia no hay contexto previo real -- no se inventa.]
 
 # Banco de preguntas efectivo para este proyecto: generico + especifico de vertical, ya
 # fusionado y priorizado por Catequil (no todas las preguntas del banco generico aplican
-# igual a todos los clientes).
-preguntas:
+# igual a todos los clientes). Agrupadas por tema para que el formulario se muestre por
+# secciones con su propia barra de progreso.
+temas:
   - id: contexto_negocio
-    texto: "Cuentame en tus palabras que hace la empresa y como genera ingresos hoy."
-  - id: procesos_clave
-    texto: "Cuales son los 2-3 procesos que mas les interesa visibilizar o mejorar con datos?"
-  - id: sistemas_actuales
-    texto: "Que sistemas usan hoy (ERP, CRM, planillas, sistema propio) y quien es dueno de cada uno?"
-  - id: kpis_actuales
-    texto: "Que miden hoy, como lo calculan, y quien consume esos reportes?"
-  - id: dolor_principal
-    texto: "Que decision no pueden tomar hoy por falta de datos o visibilidad?"
+    titulo: "Contexto de negocio"
+    preguntas:
+      - id: que_hace
+        texto: "En tus palabras, ¿qué hace la empresa y cómo genera ingresos hoy?"
+        tipo: texto_libre
+      - id: prioridad_estrategica
+        texto: "¿Cuál es la prioridad estratégica del negocio en este momento?"
+        tipo: texto_libre
+
+  - id: procesos
+    titulo: "Procesos y sistemas"
+    preguntas:
+      - id: procesos_clave
+        texto: "¿Cuáles son los 2-3 procesos que más les interesa visibilizar o mejorar con datos?"
+        tipo: texto_libre
+      - id: sistemas_actuales
+        texto: "¿Qué sistemas usan hoy?"
+        tipo: opcion_multiple
+        opciones: ["ERP", "CRM", "Planillas Excel", "Sistema propio", "Ninguno formal", "Otro"]
+      - id: sistemas_integrados
+        texto: "¿Esos sistemas se hablan entre sí, o hay carga manual/duplicada?"
+        tipo: opcion_unica
+        opciones: ["Totalmente integrados", "Parcialmente integrados", "Muy fragmentados / carga manual"]
+
+  - id: metricas
+    titulo: "Métricas y dolor"
+    preguntas:
+      - id: kpis_actuales
+        texto: "¿Qué miden hoy y quién consume esos reportes?"
+        tipo: texto_libre
+      - id: confianza_numeros
+        texto: "¿Confían en esos números tal como están hoy?"
+        tipo: booleano
+      - id: dolor_principal
+        texto: "¿Qué decisión no pueden tomar hoy por falta de datos o visibilidad?"
+        tipo: texto_libre
+
   - id: reglas_negocio
-    texto: "Que cuenta como [evento de negocio clave]? Hay excepciones o casos borde?"
-  - id: gobernanza
-    texto: "Quien aprueba un cambio en la definicion de una metrica o regla de negocio?"
-  - id: prioridades
-    texto: "De todo esto, que necesitan ver primero?"
+    titulo: "Reglas de negocio"
+    preguntas:
+      - id: definicion_evento_clave
+        texto: "¿Qué cuenta como [evento de negocio clave, ej. venta válida]? ¿Hay excepciones o casos borde?"
+        tipo: texto_libre
+      - id: reglas_variables
+        texto: "¿Hay reglas que cambian según canal, región, tipo de cliente o época del año?"
+        tipo: booleano
+      - id: gobernanza
+        texto: "¿Quién aprueba un cambio en la definición de una métrica o regla de negocio?"
+        tipo: texto_libre
 
 # Cada persona del cliente que va a completar su propio modulo. token se genera al
 # inicializar la DB (ver cli.py) -- no se pisa a mano.

@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DB_PATH = os.getenv("DB_PATH") or str(ROOT / "data" / "discovery.db")
 if not os.path.isabs(DB_PATH):
     DB_PATH = str(ROOT / DB_PATH)
@@ -47,3 +45,13 @@ def load_proyecto() -> dict:
         )
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def preguntas_planas(proyecto: dict) -> list[dict]:
+    """Todas las preguntas de todos los temas, en una sola lista -- para calcular
+    progreso total y para validar ids al guardar una respuesta."""
+    planas = []
+    for tema in proyecto.get("temas", []):
+        for p in tema.get("preguntas", []):
+            planas.append({**p, "tema_id": tema["id"], "tema_titulo": tema["titulo"]})
+    return planas

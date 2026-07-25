@@ -12,8 +12,6 @@ services:
     expose:
       - "8000"
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       TRANSCRIBE_API_KEY: ${TRANSCRIBE_API_KEY}
       TRANSCRIBE_URL: ${TRANSCRIBE_URL:-https://transcribe.raifen.ai}
       N8N_MARKDOWN_WEBHOOK: ${N8N_MARKDOWN_WEBHOOK:-https://n8n.raifen.ai/webhook/markdown-raifen}

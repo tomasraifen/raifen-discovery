@@ -1,19 +1,20 @@
 """Raifen Discovery -- FastAPI.
 
 Flujo: Catequil siembra los participantes del proyecto (config/proyecto.yaml) -> cada
-uno recibe su link /r/<token> -> completa su módulo (chat adaptativo, con opción de
-grabar audio o adjuntar archivos) -> al cerrar se genera un MD crudo por participante ->
-Catequil hace la curaduría (marca reglas de negocio confirmadas) -> se envía el
-documento formal de aprobación al cliente vía el webhook markdown-raifen."""
-import json
+uno recibe su link /r/<token> -> completa un formulario tipado (texto libre / opción
+única / opción múltiple / booleano -- sin IA, cada pregunta es un campo real) a su
+propio ritmo, con opción de grabar audio para las preguntas de texto libre o adjuntar
+archivos -> Catequil hace la curaduría (marca reglas de negocio confirmadas a partir de
+las respuestas) -> se envía el documento formal de aprobación al cliente vía el webhook
+markdown-raifen."""
 import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import formato_empresa, interview, render, settings, store, transcribe
+from . import formato_empresa, render, settings, store, transcribe
 from .auth_middleware import BasicAuthMiddleware
 
 app = FastAPI(title="Raifen Discovery")
@@ -31,8 +32,11 @@ def _proyecto() -> dict:
     return settings.load_proyecto()
 
 
-def _total_temas(proyecto: dict) -> int:
-    return len(proyecto.get("preguntas", []))
+def _pregunta_por_id(proyecto: dict, pregunta_id: str) -> dict | None:
+    for p in settings.preguntas_planas(proyecto):
+        if p["id"] == pregunta_id:
+            return p
+    return None
 
 
 # ---------- Admin ----------
@@ -40,12 +44,10 @@ def _total_temas(proyecto: dict) -> int:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     proyecto = _proyecto()
+    total_preguntas = len(settings.preguntas_planas(proyecto))
     participantes = store.listar_participantes()
-    total_temas = _total_temas(proyecto)
     for p in participantes:
-        conv = json.loads(store.obtener(p["id"])["conversacion_json"])
-        cubiertos = len([t for t in conv if t["rol"] == "participante"])
-        p["progreso"] = {"cubiertos": min(cubiertos, total_temas), "total": total_temas}
+        p["progreso"] = store.progreso(p, total_preguntas)
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     reglas = store.listar_reglas()
     return templates.TemplateResponse(
@@ -67,12 +69,15 @@ def ver_participante(request: Request, pid: str):
     if not p:
         raise HTTPException(404, "participante no encontrado")
     proyecto = _proyecto()
-    conversacion = store.get_conversacion(p)
+    respuestas = store.get_respuestas(p)
     adjuntos = store.listar_adjuntos(pid)
     link = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     return templates.TemplateResponse(
         request, "admin_participante.html",
-        {"p": p, "proyecto": proyecto, "conversacion": conversacion, "adjuntos": adjuntos, "link": link},
+        {
+            "p": p, "proyecto": proyecto, "respuestas": respuestas, "adjuntos": adjuntos, "link": link,
+            "temas": proyecto.get("temas", []),
+        },
     )
 
 
@@ -122,156 +127,89 @@ def health():
 
 # ---------- Publico (sin login admin -- la seguridad es el token) ----------
 
-def _preparar_apertura(p: dict, proyecto: dict) -> tuple[dict, list[dict]]:
-    conversacion = store.get_conversacion(p)
-    if p["estado"] == "pendiente":
-        primer_mensaje = interview.iniciar(proyecto, p)
-        conversacion = [{"rol": "agente", "texto": primer_mensaje}]
-        store.append_turno(p["id"], conversacion)
-        store.marcar_en_progreso(p["id"])
-        p = store.obtener(p["id"])
-    return p, conversacion
-
-
 @app.get("/r/{token}", response_class=HTMLResponse)
 def relevar(request: Request, token: str):
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
-    p, conversacion = _preparar_apertura(p, proyecto)
+    respuestas = store.get_respuestas(p)
+    total_preguntas = len(settings.preguntas_planas(proyecto))
     return templates.TemplateResponse(
         request, "participante.html",
-        {"p": p, "proyecto": proyecto, "conversacion": conversacion, "cerrado": p["estado"] == "completado"},
+        {
+            "p": p, "proyecto": proyecto, "respuestas": respuestas,
+            "progreso": store.progreso(p, total_preguntas),
+            "temas": proyecto.get("temas", []),
+        },
     )
 
 
-async def _procesar_mensaje(p: dict, proyecto: dict, texto: str) -> dict:
-    conversacion = store.get_conversacion(p)
-    conversacion.append({"rol": "participante", "texto": texto})
-    total_temas = _total_temas(proyecto)
-
-    if p["turnos"] + 1 >= store.MAX_TURNOS:
-        paso = {
-            "accion": "cerrar",
-            "mensaje": "¡Gracias por todo lo que me contó! Con esto tenemos una base sólida — el equipo de Raifen va a seguir trabajando con esta información.",
-            "temas_cubiertos": [],
-        }
-    else:
-        try:
-            paso = interview.siguiente_paso(proyecto, p, conversacion)
-        except Exception as e:
-            raise HTTPException(502, f"error del agente: {e}")
-
-    conversacion.append({"rol": "agente", "texto": paso["mensaje"]})
-    progreso = {"cubiertos": min(len(paso.get("temas_cubiertos") or []), total_temas), "total": total_temas}
-
-    cerrar_de_verdad = paso["accion"] == "cerrar" and not interview.es_invitacion_a_responder(paso["mensaje"])
-    if cerrar_de_verdad:
-        store.marcar_completado(p["id"], conversacion)
-        return {"mensaje": paso["mensaje"], "cerrado": True, "progreso": progreso}
-
-    store.append_turno(p["id"], conversacion)
-    return {"mensaje": paso["mensaje"], "cerrado": False, "progreso": progreso}
-
-
-@app.post("/r/{token}/mensaje")
-async def enviar_mensaje(request: Request, token: str):
+@app.post("/r/{token}/respuesta")
+async def guardar_respuesta(request: Request, token: str):
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "link inválido")
-    if p["estado"] not in ("en_progreso",):
-        raise HTTPException(400, "esta conversación ya terminó")
-    body = await request.json()
-    texto = (body.get("texto") or "").strip()
-    if not texto:
-        raise HTTPException(400, "mensaje vacío")
-    resultado = await _procesar_mensaje(p, _proyecto(), texto)
-    return JSONResponse(resultado)
-
-
-@app.post("/r/{token}/mensaje-stream")
-async def enviar_mensaje_stream(request: Request, token: str):
-    p = store.obtener_por_token(token)
-    if not p:
-        raise HTTPException(404, "link inválido")
-    if p["estado"] not in ("en_progreso",):
-        raise HTTPException(400, "esta conversación ya terminó")
-    body = await request.json()
-    texto = (body.get("texto") or "").strip()
-    if not texto:
-        raise HTTPException(400, "mensaje vacío")
-
     proyecto = _proyecto()
-    conversacion = store.get_conversacion(p)
-    conversacion.append({"rol": "participante", "texto": texto})
-    total_temas = _total_temas(proyecto)
-    forzar_cierre = p["turnos"] + 1 >= store.MAX_TURNOS
-
-    def event_stream():
-        mensaje_completo = ""
-        try:
-            if forzar_cierre:
-                mensaje_completo = "¡Gracias por todo lo que me contó! Con esto tenemos una base sólida — el equipo de Raifen va a seguir trabajando con esta información."
-                yield f"data: {json.dumps({'delta': mensaje_completo})}\n\n"
-                clasif = {"accion": "cerrar", "temas_cubiertos": []}
-            else:
-                for delta in interview.siguiente_paso_stream(proyecto, p, conversacion):
-                    mensaje_completo += delta
-                    yield f"data: {json.dumps({'delta': delta})}\n\n"
-                mensaje_limpio = interview.limpiar_fuga_metadata(mensaje_completo)
-                if mensaje_limpio != mensaje_completo:
-                    mensaje_completo = mensaje_limpio
-                    yield f"data: {json.dumps({'correccion': mensaje_completo})}\n\n"
-                conversacion_con_msg = conversacion + [{"rol": "agente", "texto": mensaje_completo}]
-                clasif = interview.clasificar_paso(proyecto, p, conversacion_con_msg)
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-            return
-
-        conversacion.append({"rol": "agente", "texto": mensaje_completo})
-        progreso = {"cubiertos": min(len(clasif.get("temas_cubiertos") or []), total_temas), "total": total_temas}
-
-        cerrar_de_verdad = clasif.get("accion") == "cerrar" and (
-            forzar_cierre or not interview.es_invitacion_a_responder(mensaje_completo)
-        )
-        if cerrar_de_verdad:
-            store.marcar_completado(p["id"], conversacion)
-            yield f"data: {json.dumps({'done': True, 'cerrado': True, 'progreso': progreso})}\n\n"
-        else:
-            store.append_turno(p["id"], conversacion)
-            yield f"data: {json.dumps({'done': True, 'cerrado': False, 'progreso': progreso})}\n\n"
-
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    body = await request.json()
+    pregunta_id = body.get("pregunta_id")
+    valor = body.get("valor")
+    pregunta = _pregunta_por_id(proyecto, pregunta_id or "")
+    if not pregunta:
+        raise HTTPException(400, "pregunta inválida")
+    store.guardar_respuesta(p["id"], pregunta_id, valor, fuente=body.get("fuente", "texto"))
+    p_actualizado = store.obtener(p["id"])
+    total_preguntas = len(settings.preguntas_planas(proyecto))
+    return JSONResponse({"ok": True, "progreso": store.progreso(p_actualizado, total_preguntas)})
 
 
-@app.post("/r/{token}/audio")
-async def enviar_audio(token: str, file: UploadFile):
+@app.post("/r/{token}/correcciones")
+async def guardar_correcciones(request: Request, token: str):
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "link inválido")
-    if p["estado"] not in ("en_progreso",):
-        raise HTTPException(400, "esta conversación ya terminó")
+    body = await request.json()
+    store.guardar_correcciones(p["id"], (body.get("texto") or "").strip())
+    return JSONResponse({"ok": True})
+
+
+@app.post("/r/{token}/finalizar")
+def finalizar(token: str):
+    p = store.obtener_por_token(token)
+    if not p:
+        raise HTTPException(404, "link inválido")
+    store.marcar_completado(p["id"])
+    return RedirectResponse(url=f"/r/{token}", status_code=303)
+
+
+@app.post("/r/{token}/audio/{pregunta_id}")
+async def enviar_audio(token: str, pregunta_id: str, file: UploadFile):
+    """Transcribe un audio y lo devuelve como texto sugerido para el campo de la
+    pregunta -- el participante lo revisa/edita antes de guardarlo. No guarda la
+    respuesta directamente: el guardado sigue pasando por /respuesta, como cualquier
+    campo de texto."""
+    p = store.obtener_por_token(token)
+    if not p:
+        raise HTTPException(404, "link inválido")
+    proyecto = _proyecto()
+    pregunta = _pregunta_por_id(proyecto, pregunta_id)
+    if not pregunta or pregunta["tipo"] != "texto_libre":
+        raise HTTPException(400, "esta pregunta no acepta audio")
 
     audio_bytes = await file.read()
     nombre = f"{uuid.uuid4().hex}_{file.filename or 'audio.webm'}"
     ruta = Path(settings.UPLOADS_DIR) / nombre
     ruta.write_bytes(audio_bytes)
-    store.agregar_adjunto(p["id"], "audio", file.filename or nombre, str(ruta), turno_indice=p["turnos"])
+    store.agregar_adjunto(p["id"], "audio", file.filename or nombre, str(ruta), pregunta_id=pregunta_id)
 
     texto = transcribe.transcribir(audio_bytes, file.filename or "audio.webm")
     if not texto:
         raise HTTPException(502, "no se pudo transcribir el audio -- probá escribir la respuesta")
-
-    resultado = await _procesar_mensaje(p, _proyecto(), texto)
-    resultado["transcripcion"] = texto
-    return JSONResponse(resultado)
+    return JSONResponse({"texto": texto})
 
 
 @app.post("/r/{token}/adjunto")
 async def enviar_adjunto(token: str, file: UploadFile):
-    """Sube un archivo/pantallazo sin que dispare un turno del agente -- queda asociado
-    al turno actual como evidencia de soporte."""
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "link inválido")
@@ -279,5 +217,5 @@ async def enviar_adjunto(token: str, file: UploadFile):
     nombre = f"{uuid.uuid4().hex}_{file.filename or 'archivo'}"
     ruta = Path(settings.UPLOADS_DIR) / nombre
     ruta.write_bytes(contenido)
-    store.agregar_adjunto(p["id"], "archivo", file.filename or nombre, str(ruta), turno_indice=p["turnos"])
+    store.agregar_adjunto(p["id"], "archivo", file.filename or nombre, str(ruta))
     return JSONResponse({"ok": True, "nombre_archivo": file.filename or nombre})

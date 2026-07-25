@@ -8,13 +8,32 @@
     <p class="muted">Link personal: <a href="{{ link }}" target="_blank">{{ link }}</a></p>
   </div>
 
-  <div class="card">
-    <h2 style="margin-top:0;">Conversación</h2>
-    {% for t in conversacion %}
-      <p><b>{{ "Agente" if t.rol == "agente" else p.nombre }}:</b> {{ t.texto }}</p>
-    {% endfor %}
-    {% if not conversacion %}<p class="muted">Todavía no arrancó la conversación.</p>{% endif %}
+  {% if p.correcciones_ya_sabemos %}
+  <div class="card" style="background:#fffbeb;border-color:#fde68a;">
+    <h2 style="margin-top:0;">Correcciones a "lo que ya sabemos"</h2>
+    <p style="margin:0;">{{ p.correcciones_ya_sabemos }}</p>
   </div>
+  {% endif %}
+
+  {% for tema in temas %}
+  <div class="card">
+    <h2 style="margin-top:0;">{{ tema.titulo }}</h2>
+    {% for pregunta in tema.preguntas %}
+      {% set r = respuestas.get(pregunta.id) %}
+      <div style="margin-bottom:14px;">
+        <p class="muted" style="margin:0 0 2px;font-size:13px;">{{ pregunta.texto }}</p>
+        {% if r %}
+          <p style="margin:0;">
+            {% if r.valor is iterable and r.valor is not string %}{{ r.valor | join(", ") }}{% else %}{{ r.valor }}{% endif %}
+            {% if r.fuente == "audio" %}<span class="pill" style="margin-left:6px;">🎙️ transcripto</span>{% endif %}
+          </p>
+        {% else %}
+          <p class="muted" style="margin:0;">— sin responder —</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
 
   {% if adjuntos %}
   <div class="card">
@@ -29,7 +48,7 @@
   {% endif %}
 
   <div class="card">
-    <h2 style="margin-top:0;">Agregar regla de negocio desde esta charla</h2>
+    <h2 style="margin-top:0;">Agregar regla de negocio desde estas respuestas</h2>
     <form method="post" action="/admin/reglas">
       <input type="hidden" name="participante_id" value="{{ p.id }}">
       <textarea name="texto" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--borde);" placeholder="Ej: un cliente se considera activo cuando..."></textarea>
