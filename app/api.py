@@ -23,6 +23,7 @@ app.add_middleware(BasicAuthMiddleware)
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["brand_name"] = settings.BRAND_NAME
+templates.env.globals["admin_review_email"] = settings.ADMIN_REVIEW_EMAIL
 
 
 @app.on_event("startup")
@@ -63,6 +64,14 @@ def home(request: Request):
 def sembrar():
     proyecto = _proyecto()
     store.sembrar_participantes(proyecto.get("participantes", []))
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/admin/lo-que-sabemos")
+async def actualizar_lo_que_sabemos(request: Request):
+    form = await request.form()
+    texto = (form.get("texto") or "").strip()
+    settings.actualizar_lo_que_sabemos(_proyecto(), texto)
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -140,6 +149,26 @@ def ver_participante(request: Request, pid: str):
     )
 
 
+@app.post("/admin/participantes/{pid}/respuestas/{pregunta_id}")
+async def editar_respuesta_admin(request: Request, pid: str, pregunta_id: str):
+    """Correccion manual desde el admin -- ej. para arreglar una respuesta de prueba
+    cargada por error. Mismo mecanismo de guardado que usa el participante."""
+    form = await request.form()
+    valor = (form.get("valor") or "").strip()
+    if valor:
+        pregunta = _pregunta_por_id(_proyecto(), pregunta_id)
+        if pregunta and pregunta["tipo"] == "opcion_multiple":
+            valor = [v.strip() for v in valor.split(",") if v.strip()]
+        store.guardar_respuesta(pid, pregunta_id, valor, fuente="editado_por_admin")
+    return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
+
+
+@app.post("/admin/participantes/{pid}/respuestas/{pregunta_id}/eliminar")
+def eliminar_respuesta_admin(pid: str, pregunta_id: str):
+    store.eliminar_respuesta(pid, pregunta_id)
+    return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
+
+
 @app.post("/admin/reglas")
 async def crear_regla(request: Request):
     form = await request.form()
@@ -170,12 +199,12 @@ def enviar_aprobacion():
     documento = render.documento_aprobacion(proyecto, reglas, participantes)
     ok, error = formato_empresa.enviar_para_aprobacion(
         markdown_text=documento,
-        correo_referencia=proyecto.get("correo_aprobacion", ""),
+        correo_referencia=settings.ADMIN_REVIEW_EMAIL,  # NUNCA el cliente -- siempre revisión interna primero
         nombre_documento=f"Reglas de Negocio — {proyecto['cliente']}",
         nombre_proyecto=proyecto.get("proyecto", proyecto["cliente"]),
         nombre_cliente=proyecto["cliente"],
     )
-    store.registrar_aprobacion(documento, proyecto.get("correo_aprobacion", ""), None if ok else error)
+    store.registrar_aprobacion(documento, settings.ADMIN_REVIEW_EMAIL, None if ok else error)
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -248,6 +277,28 @@ def gracias(request: Request, token: str):
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
     return templates.TemplateResponse(request, "gracias.html", {"p": p, "proyecto": proyecto})
+
+
+@app.get("/r/{token}/panel", response_class=HTMLResponse)
+def panel_participante(request: Request, token: str):
+    """Vista de solo lectura del progreso general del proyecto -- mismo tipo de info que
+    ve el admin (quienes son los stakeholders, quien respondio, que areas estan
+    cubiertas), pero sin nada de curaduria ni edicion de preguntas. Cualquier
+    participante con un link valido puede verla -- es informacion del propio proyecto
+    del cliente, no datos internos de Raifen."""
+    p = store.obtener_por_token(token)
+    if not p:
+        raise HTTPException(404, "Este link no es válido.")
+    proyecto = _proyecto()
+    total_preguntas = len(settings.preguntas_planas(proyecto))
+    participantes = store.listar_participantes()
+    for part in participantes:
+        part["progreso"] = store.progreso(part, total_preguntas)
+    resumen_temas = store.resumen_por_tema(proyecto, participantes)
+    return templates.TemplateResponse(
+        request, "panel_participante.html",
+        {"p": p, "proyecto": proyecto, "participantes": participantes, "resumen_temas": resumen_temas},
+    )
 
 
 @app.post("/r/{token}/audio/{pregunta_id}")

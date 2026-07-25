@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Panel — {{ proyecto.cliente }}</title>
+  <style>
+    :root {
+      --cyan: #2CC4DC; --mint: #348AB7; --violeta: #4C448D; --earth-800: #001233;
+      --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
+      --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: #64748b; --borde: #e2e8f0;
+      --header-bg: #EAF9FC; --header-texto: var(--earth-800); --header-borde: var(--cyan);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
+        --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
+      --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--texto); margin: 0; }
+    h1, h2 { font-family: var(--font-heading); }
+    header {
+      background: var(--header-bg); border-bottom: 2px solid var(--header-borde);
+      color: var(--header-texto); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
+    }
+    header .marca { display: flex; align-items: center; gap: 12px; }
+    header img.logo { height: 26px; display: block; }
+    header img.logo.blanca { display: none; }
+    :root[data-theme="dark"] header img.logo.color { display: none; }
+    :root[data-theme="dark"] header img.logo.blanca { display: block; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) header img.logo.color { display: none; }
+      :root:not([data-theme="light"]) header img.logo.blanca { display: block; }
+    }
+    header .cliente { font-family: var(--font-heading); font-weight: 600; font-size: 14px; opacity: .85; }
+    #toggle-tema { background: rgba(44,196,220,.15); border: 1px solid currentColor; opacity: .9; color: var(--header-texto); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 20px 24px 60px; }
+    .card { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; }
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(130,145,168,.15); color: var(--muted); }
+    .pill.en_progreso { background: rgba(44,196,220,.15); color: var(--mint); }
+    .pill.completado { background: rgba(52,199,123,.15); color: var(--success); }
+    .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; width: 100%; }
+    .progreso-barra > div { background: var(--cyan); height: 100%; }
+    .muted { color: var(--muted); font-size: 13px; }
+    a.btn { display: inline-block; background: var(--mint); color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="marca">
+    <img class="logo color" src="/static/raifen-logo.png" alt="Raifen">
+    <img class="logo blanca" src="/static/raifen-logo-blanco.png" alt="Raifen">
+    <span class="cliente">Panel general — {{ proyecto.cliente }}</span>
+  </div>
+  <button id="toggle-tema" title="Cambiar tema claro/oscuro">🌙</button>
+</header>
+<div class="wrap">
+  <div class="card">
+    <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
+    <p class="muted" style="margin:0 0 14px;">Así va el discovery del proyecto — quién ya respondió y qué áreas están cubiertas.</p>
+    <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
+  </div>
+
+  {% if resumen_temas %}
+  <div class="card">
+    <h2 style="margin-top:0;">Cobertura por área</h2>
+    <table>
+      <tr><th>Área</th><th style="width:220px;">Avance</th></tr>
+      {% for t in resumen_temas %}
+      <tr>
+        <td>{{ t.titulo }}</td>
+        <td>
+          <div class="progreso-barra"><div style="width: {{ (t.cubiertas / t.total * 100) if t.total else 0 }}%;"></div></div>
+          <span class="muted">{{ t.cubiertas }}/{{ t.total }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;">Quiénes participan</h2>
+    <table>
+      <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th style="width:140px;">Avance</th></tr>
+      {% for part in participantes %}
+      <tr>
+        <td>{{ part.nombre }}{% if part.id == p.id %} <span class="muted">(usted)</span>{% endif %}</td>
+        <td>{{ part.cargo or "—" }}</td>
+        <td><span class="pill {{ part.estado }}">{{ part.estado }}</span></td>
+        <td>
+          <div class="progreso-barra"><div style="width: {{ (part.progreso.cubiertos / part.progreso.total * 100) if part.progreso.total else 0 }}%;"></div></div>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+<script>
+(function () {
+  const root = document.documentElement;
+  const btn = document.getElementById("toggle-tema");
+  const guardado = localStorage.getItem("discovery-tema");
+  if (guardado) root.setAttribute("data-theme", guardado);
+  function actual() { return root.getAttribute("data-theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+  function actualizarIcono() { btn.textContent = actual() === "dark" ? "☀️" : "🌙"; }
+  actualizarIcono();
+  btn.addEventListener("click", () => {
+    const nuevo = actual() === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", nuevo);
+    localStorage.setItem("discovery-tema", nuevo);
+    actualizarIcono();
+  });
+})();
+</script>
+</body>
+</html>

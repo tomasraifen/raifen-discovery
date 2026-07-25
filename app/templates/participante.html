@@ -13,30 +13,39 @@
       --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
       --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: #64748b; --borde: #e2e8f0;
       --saber-bg: #eef2ff; --saber-borde: #c7d2fe;
+      --header-bg: #EAF9FC; --header-texto: var(--earth-800); --header-borde: var(--cyan);
     }
     :root[data-theme="dark"] {
       --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
       --saber-bg: #14205e; --saber-borde: #4C448D;
+      --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
         --saber-bg: #14205e; --saber-borde: #4C448D;
+        --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
       }
     }
     * { box-sizing: border-box; }
     body { font-family: var(--font-body); background: var(--bg); color: var(--texto); margin: 0; padding-bottom: 70px; }
     h1, h2, h3 { font-family: var(--font-heading); }
     header {
-      background: var(--earth-800);
-      background-image: radial-gradient(ellipse 70% 60% at 15% 0%, rgba(76, 68, 141, 0.35), transparent 70%),
-                         radial-gradient(ellipse 70% 60% at 90% 100%, rgba(44, 196, 220, 0.20), transparent 70%);
-      color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+      background: var(--header-bg); border-bottom: 2px solid var(--header-borde);
+      color: var(--header-texto); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10;
     }
     header .marca { display: flex; align-items: center; gap: 12px; }
-    header img.logo { height: 24px; }
-    header .cliente { font-family: var(--font-heading); font-weight: 600; font-size: 14px; opacity: .9; }
-    #toggle-tema { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; flex-shrink: 0; }
+    header img.logo { height: 26px; display: block; }
+    header img.logo.blanca { display: none; }
+    :root[data-theme="dark"] header img.logo.color { display: none; }
+    :root[data-theme="dark"] header img.logo.blanca { display: block; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) header img.logo.color { display: none; }
+      :root:not([data-theme="light"]) header img.logo.blanca { display: block; }
+    }
+    header .cliente { font-family: var(--font-heading); font-weight: 600; font-size: 14px; opacity: .85; }
+    #toggle-tema { background: rgba(44,196,220,.15); border: 1px solid currentColor; opacity: .9; color: var(--header-texto); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; flex-shrink: 0; }
     .wrap { max-width: 780px; margin: 0 auto; padding: 20px 24px; }
     .intro { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 18px 22px; margin-bottom: 18px; font-size: 15px; line-height: 1.55; }
     .intro h1 { margin: 0 0 8px; font-size: 20px; }
@@ -76,7 +85,11 @@
 </head>
 <body>
 <header>
-  <div class="marca"><img class="logo" src="/static/raifen-logo-blanco.png" alt="Raifen"><span class="cliente">Discovery — {{ proyecto.cliente }}</span></div>
+  <div class="marca">
+    <img class="logo color" src="/static/raifen-logo.png" alt="Raifen">
+    <img class="logo blanca" src="/static/raifen-logo-blanco.png" alt="Raifen">
+    <span class="cliente">Discovery — {{ proyecto.cliente }}</span>
+  </div>
   <button id="toggle-tema" title="Cambiar tema claro/oscuro">🌙</button>
 </header>
 <div class="wrap">
@@ -98,6 +111,8 @@
     <span class="guardado" id="guardado-correcciones">Guardado ✓</span>
   </div>
   {% endif %}
+
+  <p style="margin:0 0 14px;"><a href="/r/{{ p.token }}/panel" style="color:var(--mint);font-weight:600;font-size:13.5px;">📊 Ver el panel general del proyecto (quién más participa, qué áreas ya están cubiertas) →</a></p>
 
   <div class="progreso-barra"><div id="barra" style="width: {{ (progreso.cubiertos / progreso.total * 100) if progreso.total else 0 }}%;"></div></div>
 

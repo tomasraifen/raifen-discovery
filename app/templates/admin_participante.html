@@ -1,6 +1,6 @@
 {% extends "_base.html" %}
 {% block title %}{{ p.nombre }} — {{ proyecto.cliente }}{% endblock %}
-{% block nav %}<a href="/">← Dashboard</a><a href="/admin/editor">✎ Editar preguntas</a>{% endblock %}
+{% block nav %}<a href="/admin/editor">✎ Preguntas y temas</a><a class="cta" href="/">🏠 Panel central</a>{% endblock %}
 {% block content %}
   <div class="card">
     <h1 style="margin:0 0 4px;">{{ p.nombre }}</h1>
@@ -20,16 +20,29 @@
     <h2 style="margin-top:0;">{{ tema.titulo }}</h2>
     {% for pregunta in tema.preguntas %}
       {% set r = respuestas.get(pregunta.id) %}
-      <div style="margin-bottom:14px;">
-        <p class="muted" style="margin:0 0 2px;font-size:13px;">{{ pregunta.texto }}</p>
+      <div style="margin-bottom:16px;">
+        <p class="muted" style="margin:0 0 4px;font-size:13px;">{{ pregunta.texto }}</p>
         {% if r %}
-          <p style="margin:0;">
+          <p style="margin:0 0 4px;">
             {% if r.valor is iterable and r.valor is not string %}{{ r.valor | join(", ") }}{% else %}{{ r.valor }}{% endif %}
             {% if r.fuente == "audio" %}<span class="pill" style="margin-left:6px;">🎙️ transcripto</span>{% endif %}
+            {% if r.fuente == "editado_por_admin" %}<span class="pill" style="margin-left:6px;">editado por admin</span>{% endif %}
           </p>
         {% else %}
-          <p class="muted" style="margin:0;">— sin responder —</p>
+          <p class="muted" style="margin:0 0 4px;">— sin responder —</p>
         {% endif %}
+        <details>
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--mint);">{% if r %}Corregir{% else %}Cargar{% endif %} esta respuesta a mano</summary>
+          <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}" style="display:flex;gap:6px;margin-top:6px;">
+            <input type="text" name="valor" style="flex:1;" placeholder="{% if pregunta.tipo == 'opcion_multiple' %}separado por comas{% else %}valor nuevo{% endif %}" value="{% if r and r.valor is string %}{{ r.valor }}{% elif r %}{{ r.valor | join(', ') }}{% endif %}">
+            <button class="btn secundario" style="padding:6px 10px;font-size:12.5px;" type="submit">Guardar</button>
+          </form>
+          {% if r %}
+          <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}/eliminar" style="margin-top:4px;" onsubmit="return confirm('¿Borrar esta respuesta?');">
+            <button class="btn secundario" style="padding:4px 10px;font-size:12px;" type="submit">Borrar respuesta</button>
+          </form>
+          {% endif %}
+        </details>
       </div>
     {% endfor %}
   </div>

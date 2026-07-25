@@ -125,6 +125,16 @@ def guardar_respuesta(pid: str, pregunta_id: str, valor, fuente: str = "texto"):
         )
 
 
+def eliminar_respuesta(pid: str, pregunta_id: str):
+    """Para que el admin pueda limpiar una respuesta cargada por error (ej. datos de
+    prueba) sin tener que resetear todo el participante."""
+    p = obtener(pid)
+    respuestas = get_respuestas(p)
+    respuestas.pop(pregunta_id, None)
+    with _conn() as c:
+        c.execute("UPDATE participantes SET respuestas_json = ? WHERE id = ?", (json.dumps(respuestas, ensure_ascii=False), pid))
+
+
 def guardar_correcciones(pid: str, texto: str):
     with _conn() as c:
         c.execute("UPDATE participantes SET correcciones_ya_sabemos = ? WHERE id = ?", (texto, pid))

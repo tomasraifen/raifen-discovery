@@ -34,6 +34,13 @@ TRANSCRIBE_API_KEY = os.getenv("TRANSCRIBE_API_KEY", "")
 # (POST /webhook/markdown-raifen, ver knowledge/sistemas/infra.md en Raifen_Claude_System).
 N8N_MARKDOWN_WEBHOOK = os.getenv("N8N_MARKDOWN_WEBHOOK", "https://n8n.raifen.ai/webhook/markdown-raifen")
 
+# Regla dura: el documento de reglas de negocio NUNCA se manda directo al cliente. Se
+# manda siempre a este correo para que un humano de Raifen lo revise antes de reenviarlo.
+# proyecto["correo_aprobacion"] queda solo como referencia informativa dentro del
+# documento (a quien se lo reenvia Raifen despues de revisarlo), nunca como destinatario
+# real del webhook.
+ADMIN_REVIEW_EMAIL = os.getenv("ADMIN_REVIEW_EMAIL", "tomas@raifen.ai")
+
 CONFIG_DIR = ROOT / "config"
 
 
@@ -123,5 +130,11 @@ def eliminar_pregunta(proyecto: dict, tema_id: str, pregunta_id: str) -> dict:
 
 def agregar_participante_a_yaml(proyecto: dict, nombre: str, cargo: str, email: str) -> dict:
     proyecto.setdefault("participantes", []).append({"nombre": nombre, "cargo": cargo, "email": email})
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def actualizar_lo_que_sabemos(proyecto: dict, texto: str) -> dict:
+    proyecto["lo_que_ya_sabemos"] = texto
     guardar_proyecto(proyecto)
     return proyecto

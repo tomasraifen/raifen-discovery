@@ -37,7 +37,8 @@
     <h1>¡Gracias{% if p.nombre %}, {{ p.nombre.split(" ")[0] }}{% endif %}!</h1>
     <p>El formulario quedó registrado. El equipo de Raifen va a revisar todo esto y va a seguir en contacto sobre los próximos pasos del proyecto con {{ proyecto.cliente }}.</p>
     <a class="btn" href="/r/{{ p.token }}">Volver a mis respuestas</a>
-    <br><img class="logo" src="/static/raifen-logo.png" alt="Raifen">
+    <br><a href="/r/{{ p.token }}/panel" style="display:inline-block;margin-top:12px;font-size:13.5px;color:var(--mint);">Ver el panel general del proyecto →</a>
+    <br><img class="logo" src="/static/raifen-logo.png" alt="Raifen" style="margin-top:20px;">
   </div>
 </body>
 </html>

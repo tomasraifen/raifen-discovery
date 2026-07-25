@@ -1,19 +1,24 @@
-"""Arma el markdown consolidado de reglas de negocio confirmadas, para mandar a
-aprobacion formal del cliente (via formato_empresa.py). Solo incluye lo que Catequil ya
-curo y marco como 'confirmada' -- nunca manda borradores sin revisar."""
+"""Arma el markdown consolidado de reglas de negocio confirmadas -- para revision
+interna de Raifen (via formato_empresa.py). Solo incluye lo que Catequil ya curo y marco
+como 'confirmada'. Regla dura: este documento NUNCA se manda directo al cliente -- llega
+siempre a un correo de Raifen para revision humana, y recien despues se reenvia al
+cliente a mano si corresponde."""
 from datetime import datetime, timezone
 
 
 def documento_aprobacion(proyecto: dict, reglas: list[dict], participantes_por_id: dict[str, dict]) -> str:
     confirmadas = [r for r in reglas if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    correo_cliente = proyecto.get("correo_aprobacion", "(sin definir en proyecto.yaml)")
 
     lineas = [
         f"# Reglas de Negocio — {proyecto['cliente']} | {fecha}",
         "",
+        f"⚠️ **Borrador para revisión interna — todavía NO se envió al cliente.** "
+        f"Destinatario final previsto (una vez aprobado acá): `{correo_cliente}`.",
+        "",
         f"Documento de reglas de negocio relevadas durante el discovery del proyecto "
-        f"**{proyecto.get('proyecto', proyecto['cliente'])}**. Este documento se envía para "
-        f"aprobación explícita antes de que el equipo de datos lo tome como insumo de modelado.",
+        f"**{proyecto.get('proyecto', proyecto['cliente'])}**.",
         "",
         "## Reglas de negocio",
         "",
@@ -31,7 +36,7 @@ def documento_aprobacion(proyecto: dict, reglas: list[dict], participantes_por_i
     lineas += [
         "",
         "---",
-        "*Por favor confirmar por este mismo correo si las reglas listadas reflejan correctamente "
-        "cómo opera el negocio, o indicar los ajustes necesarios antes de que avancemos con el modelado.*",
+        f"*Revisar esta lista. Si está lista para el cliente, reenviarla manualmente a "
+        f"`{correo_cliente}` — este documento no sale de Raifen automáticamente.*",
     ]
     return "\n".join(lineas)

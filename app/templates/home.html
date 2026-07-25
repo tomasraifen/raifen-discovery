@@ -1,6 +1,6 @@
 {% extends "_base.html" %}
 {% block title %}{{ proyecto.cliente }} — Discovery{% endblock %}
-{% block nav %}<a href="/admin/editor">✎ Editar preguntas y participantes</a>{% endblock %}
+{% block nav %}<a class="cta" href="/admin/editor">✎ Preguntas y temas</a>{% endblock %}
 {% block content %}
   <div class="card">
     <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
@@ -9,7 +9,7 @@
       <div class="paso"><b>1. Compartir</b>Copiar el link de cada participante y enviarlo (WhatsApp, correo).</div>
       <div class="paso"><b>2. Esperar</b>Cada persona completa su formulario a su ritmo — el progreso se ve acá abajo.</div>
       <div class="paso"><b>3. Curar</b>Con las respuestas, armar reglas de negocio abajo y confirmarlas.</div>
-      <div class="paso"><b>4. Aprobar</b>Cuando estén confirmadas, enviar el documento formal al cliente.</div>
+      <div class="paso"><b>4. Revisar</b>El documento se manda a Raifen para revisión — nunca directo al cliente.</div>
     </div>
   </div>
 
@@ -31,6 +31,15 @@
     </table>
   </div>
   {% endif %}
+
+  <div class="card">
+    <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
+    <p class="muted" style="margin:0 0 10px;">Este texto se le muestra a cada participante al arrancar su formulario, de forma transparente — si algo no corresponde, ellos mismos lo corrigen desde su formulario.</p>
+    <form method="post" action="/admin/lo-que-sabemos">
+      <textarea name="texto" rows="4" style="width:100%;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
+      <div style="margin-top:8px;"><button class="btn secundario" type="submit">Guardar</button></div>
+    </form>
+  </div>
 
   <div class="card">
     <h2 style="margin-top:0;">Participantes (stakeholders)</h2>
@@ -58,6 +67,16 @@
       </table>
       <p class="muted" style="margin-top:10px;">"Ver como participante" abre el formulario tal cual lo ve esa persona — sin login de admin, la seguridad es el link personal.</p>
     {% endif %}
+
+    <details style="margin-top:16px;">
+      <summary style="cursor:pointer;font-weight:700;color:var(--mint);font-family:var(--font-heading);font-size:14.5px;">+ Agregar participante nuevo</summary>
+      <form method="post" action="/admin/participantes" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="muted" style="display:block;font-size:12px;">Nombre</label><input type="text" name="nombre" required></div>
+        <div><label class="muted" style="display:block;font-size:12px;">Cargo</label><input type="text" name="cargo"></div>
+        <div><label class="muted" style="display:block;font-size:12px;">Correo</label><input type="email" name="email"></div>
+        <button class="btn secundario" type="submit">Agregar</button>
+      </form>
+    </details>
   </div>
 
   <div class="card">
@@ -90,8 +109,8 @@
       </table>
     {% endif %}
     <form method="post" action="/admin/aprobacion/enviar" style="margin-top:16px;">
-      <button class="btn violeta" type="submit">Enviar documento de aprobación al cliente</button>
-      <p class="muted" style="margin:6px 0 0;">Solo incluye las reglas marcadas como "confirmada" o posteriores. Se envía a {{ proyecto.correo_aprobacion }} vía Google Doc con formato Raifen.</p>
+      <button class="btn violeta" type="submit">Enviar documento para revisión interna</button>
+      <p class="muted" style="margin:6px 0 0;">Solo incluye las reglas marcadas como "confirmada" o posteriores. Se envía a <b>{{ admin_review_email }}</b> vía Google Doc con formato Raifen — nunca directo al cliente. El destinatario final ({{ proyecto.correo_aprobacion }}) queda anotado dentro del documento como referencia, para reenviar a mano después de revisarlo.</p>
     </form>
   </div>
 {% endblock %}
