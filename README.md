@@ -68,10 +68,21 @@ python cli.py serve    # http://127.0.0.1:8020
    `N8N_MARKDOWN_WEBHOOK` (para el envío del documento formal de aprobación)
 5. Volumen persistente para la DB SQLite + adjuntos (mismo patrón que `blueprint-data`)
 
-**Estado (2026-07-24): scaffold inicial, sin deploy todavía.** Falta: probar el flujo
-completo local, definir con Oscar el procedimiento repetible de deploy en Coolify (hoy
-es manual, calcado del de Smart Blueprint), y decidir si Catequil necesita acceso propio
-a la API de Coolify o si cada deploy lo dispara Tom/Oscar.
+**Estado (2026-07-24): scaffold probado localmente end-to-end (formulario sin IA), en
+proceso de primer deploy manual en Coolify (`discovery.raifen.ai`, instancia de
+testing/referencia — todavía sin cliente real).** Falta: definir con Oscar el
+procedimiento repetible de deploy en Coolify, y decidir si Catequil necesita acceso
+propio a la API de Coolify o si cada deploy lo dispara Tom/Oscar.
+
+## Pendiente — backlog
+
+- **Editor de preguntas/temas/participantes desde la plataforma.** Hoy `config/proyecto.yaml`
+  se edita a mano y se pega en el Storage de Coolify de cada instancia — no hay UI para
+  agregar/editar preguntas, temas (áreas) o participantes desde el panel admin. Tom lo
+  pidió explícitamente (2026-07-24), pero se deja para después del primer deploy — no
+  bloquea la instancia de testing. Cuando se implemente, definir si esas ediciones se
+  siguen guardando en `proyecto.yaml` (y quién lo persiste — la app tendría que escribirlo,
+  hoy solo lo lee) o si el banco de preguntas pasa a vivir en la base SQLite directamente.
 
 ## Estructura
 
