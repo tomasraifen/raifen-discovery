@@ -22,7 +22,7 @@ services:
       UPLOADS_DIR: /data/adjuntos
     volumes:
       - discovery-data:/data
-      - ./config/proyecto.yaml:/app/config/proyecto.yaml:ro
+      - ./config/proyecto.yaml:/app/config/proyecto.yaml
 
 volumes:
   discovery-data:
