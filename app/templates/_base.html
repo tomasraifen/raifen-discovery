@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="/static/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
   <title>{% block title %}Raifen Discovery{% endblock %}</title>
   <style>
     :root {
@@ -15,20 +18,21 @@
       --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
 
       --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: var(--earth-600); --borde: #e2e8f0;
-      --header-bg: #EAF9FC; --header-texto: var(--earth-800); --header-borde: var(--cyan);
-      --header-link-hover: rgba(44, 196, 220, 0.15);
     }
     :root[data-theme="dark"] {
       --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
-      --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
-      --header-link-hover: rgba(255,255,255,.10);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
-        --header-bg: var(--earth-800); --header-texto: #fff; --header-borde: var(--violeta);
-        --header-link-hover: rgba(255,255,255,.10);
       }
+    }
+    /* El header NUNCA cambia con el tema -- siempre claro, siempre logo a color (pedido
+       explicito: es donde mas se ve el logo, no tiene que competir con el toggle). Solo
+       el contenido (body/cards) responde al claro/oscuro. */
+    :root {
+      --header-bg: #EAF9FC; --header-texto: #001233; --header-borde: #2CC4DC;
+      --header-link-hover: rgba(44, 196, 220, 0.15);
     }
     * { box-sizing: border-box; }
     body {
@@ -42,15 +46,8 @@
       justify-content: space-between; flex-wrap: wrap; gap: 10px; position: sticky; top: 0; z-index: 10;
     }
     header.top .marca { display: flex; align-items: center; gap: 14px; text-decoration: none; }
-    header.top img.logo { height: 30px; display: block; }
-    header.top img.logo.blanca { display: none; }
-    :root[data-theme="dark"] header.top img.logo.color { display: none; }
-    :root[data-theme="dark"] header.top img.logo.blanca { display: block; }
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) header.top img.logo.color { display: none; }
-      :root:not([data-theme="light"]) header.top img.logo.blanca { display: block; }
-    }
-    header.top .separador { width: 1px; height: 22px; background: currentColor; opacity: .2; }
+    header.top img.logo { height: 42px; display: block; }
+    header.top .separador { width: 1px; height: 26px; background: currentColor; opacity: .2; }
     header.top .titulo-proyecto { font-family: var(--font-heading); font-weight: 600; font-size: 14.5px; opacity: .85; }
     nav.top-nav { display: flex; gap: 6px; align-items: center; }
     nav.top-nav a {
@@ -109,8 +106,7 @@
 <body>
   <header class="top">
     <a class="marca" href="/">
-      <img class="logo color" src="/static/raifen-logo.png" alt="Raifen">
-      <img class="logo blanca" src="/static/raifen-logo-blanco.png" alt="Raifen">
+      <img class="logo" src="/static/raifen-logo.png" alt="Raifen">
       <div class="separador"></div>
       <span class="titulo-proyecto">Discovery{% if proyecto %} — {{ proyecto.cliente }}{% endif %}</span>
     </a>

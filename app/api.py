@@ -122,6 +122,31 @@ async def crear_participante(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.get("/admin/api/respuestas")
+def api_respuestas():
+    """Export estructurado de todo lo relevado -- pensado para que Catequil (u otro
+    agente/script) lo consuma directo en vez de raspar HTML, al armar el resumen de
+    "lo que sabemos" o la curaduria de reglas de negocio. Mismo auth basico que el
+    resto de /admin."""
+    proyecto = _proyecto()
+    participantes = store.listar_participantes()
+    data = []
+    for p in participantes:
+        completo = store.obtener(p["id"])
+        data.append({
+            "id": p["id"], "nombre": p["nombre"], "cargo": p["cargo"], "email": p["email"],
+            "estado": p["estado"], "correcciones_ya_sabemos": completo.get("correcciones_ya_sabemos"),
+            "respuestas": store.get_respuestas(completo),
+        })
+    return JSONResponse({
+        "proyecto": {"cliente": proyecto["cliente"], "proyecto": proyecto.get("proyecto"), "vertical": proyecto.get("vertical")},
+        "lo_que_ya_sabemos": proyecto.get("lo_que_ya_sabemos"),
+        "temas": proyecto.get("temas", []),
+        "participantes": data,
+        "reglas_negocio": store.listar_reglas(),
+    })
+
+
 @app.get("/admin/editor", response_class=HTMLResponse)
 def editor(request: Request):
     proyecto = _proyecto()
