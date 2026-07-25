@@ -55,3 +55,68 @@ def preguntas_planas(proyecto: dict) -> list[dict]:
         for p in tema.get("preguntas", []):
             planas.append({**p, "tema_id": tema["id"], "tema_titulo": tema["titulo"]})
     return planas
+
+
+def _slug(texto: str) -> str:
+    import re
+    import unicodedata
+    ascii_txt = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"[^a-z0-9]+", "_", ascii_txt.lower()).strip("_") or "item"
+
+
+def guardar_proyecto(proyecto: dict):
+    """Escribe config/proyecto.yaml de vuelta -- lo usa el editor de preguntas/temas/
+    participantes del panel admin. El archivo es un bind mount con permiso de escritura
+    (ver docker-compose.yml), así que esto persiste tanto local como en Coolify."""
+    path = CONFIG_DIR / "proyecto.yaml"
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(proyecto, f, allow_unicode=True, sort_keys=False, width=1000)
+
+
+def agregar_tema(proyecto: dict, titulo: str) -> dict:
+    tema_id = _slug(titulo)
+    ids_existentes = {t["id"] for t in proyecto.setdefault("temas", [])}
+    sufijo = 2
+    tema_id_final = tema_id
+    while tema_id_final in ids_existentes:
+        tema_id_final = f"{tema_id}_{sufijo}"
+        sufijo += 1
+    proyecto["temas"].append({"id": tema_id_final, "titulo": titulo, "preguntas": []})
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def agregar_pregunta(proyecto: dict, tema_id: str, texto: str, tipo: str, opciones: list[str] | None = None) -> dict:
+    for tema in proyecto.get("temas", []):
+        if tema["id"] == tema_id:
+            pregunta_id = _slug(texto)
+            ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
+            sufijo = 2
+            pregunta_id_final = pregunta_id
+            while pregunta_id_final in ids_existentes:
+                pregunta_id_final = f"{pregunta_id}_{sufijo}"
+                sufijo += 1
+            nueva = {"id": pregunta_id_final, "texto": texto, "tipo": tipo}
+            if tipo in ("opcion_unica", "opcion_multiple") and opciones:
+                nueva["opciones"] = opciones
+            tema["preguntas"].append(nueva)
+            break
+    else:
+        raise ValueError(f"tema '{tema_id}' no existe")
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def eliminar_pregunta(proyecto: dict, tema_id: str, pregunta_id: str) -> dict:
+    for tema in proyecto.get("temas", []):
+        if tema["id"] == tema_id:
+            tema["preguntas"] = [p for p in tema.get("preguntas", []) if p["id"] != pregunta_id]
+            break
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def agregar_participante_a_yaml(proyecto: dict, nombre: str, cargo: str, email: str) -> dict:
+    proyecto.setdefault("participantes", []).append({"nombre": nombre, "cargo": cargo, "email": email})
+    guardar_proyecto(proyecto)
+    return proyecto

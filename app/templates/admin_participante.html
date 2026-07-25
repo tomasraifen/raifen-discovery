@@ -1,7 +1,7 @@
 {% extends "_base.html" %}
 {% block title %}{{ p.nombre }} — {{ proyecto.cliente }}{% endblock %}
+{% block nav %}<a href="/">← Dashboard</a><a href="/admin/editor">✎ Editar preguntas</a>{% endblock %}
 {% block content %}
-  <p><a href="/">← volver</a></p>
   <div class="card">
     <h1 style="margin:0 0 4px;">{{ p.nombre }}</h1>
     <p class="muted" style="margin:0;">{{ p.cargo or "—" }} · {{ p.email or "sin email" }} · <span class="pill {{ p.estado }}">{{ p.estado }}</span></p>

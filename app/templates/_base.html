@@ -3,24 +3,59 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <title>{% block title %}Raifen Discovery{% endblock %}</title>
   <style>
     :root {
-      --navy: #001233; --cian: #2CC4DC; --azul: #348AB7; --violeta: #4C448D;
-      --bg: #f6f8fa; --card: #ffffff; --texto: #16263b; --muted: #64748b; --borde: #e2e8f0;
+      --cyan: #2CC4DC; --mint: #348AB7; --violeta: #4C448D;
+      --earth-400: #8291A8; --earth-500: #A9B7CC; --earth-600: #4A5C74; --earth-700: #2E3D52; --earth-800: #001233;
+      --success: #34C77B;
+      --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
+
+      --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: var(--earth-600);
+      --borde: #e2e8f0; --header-bg: var(--earth-800); --header-texto: #fff;
+      --logo: url('/static/raifen-logo.png');
+    }
+    :root[data-theme="dark"] {
+      --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500);
+      --borde: #1E3A5F; --header-bg: #000A1F; --header-texto: #fff;
+      --logo: url('/static/raifen-logo-blanco.png');
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500);
+        --borde: #1E3A5F; --header-bg: #000A1F; --header-texto: #fff;
+        --logo: url('/static/raifen-logo-blanco.png');
+      }
     }
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, "Segoe UI", Arial, sans-serif; background: var(--bg);
-      color: var(--texto); margin: 0; padding: 0;
+      font-family: var(--font-body); background: var(--bg); color: var(--texto); margin: 0; padding: 0;
+      transition: background .2s, color .2s;
     }
+    h1, h2, h3 { font-family: var(--font-heading); }
     header.top {
-      background: var(--navy); color: #fff; padding: 14px 24px; display: flex;
-      align-items: center; justify-content: space-between;
+      background: var(--header-bg);
+      background-image:
+        radial-gradient(ellipse 70% 60% at 15% 0%, rgba(76, 68, 141, 0.35), transparent 70%),
+        radial-gradient(ellipse 70% 60% at 90% 100%, rgba(44, 196, 220, 0.20), transparent 70%);
+      color: var(--header-texto); padding: 14px 24px; display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 10px;
     }
-    header.top .brand { font-weight: 700; letter-spacing: .3px; }
-    header.top .brand span { color: var(--cian); }
-    main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.top .marca { display: flex; align-items: center; gap: 14px; }
+    header.top img.logo { height: 26px; }
+    header.top .separador { width: 1px; height: 22px; background: rgba(255,255,255,.25); }
+    header.top .titulo-proyecto { font-family: var(--font-heading); font-weight: 600; font-size: 14.5px; opacity: .9; }
+    nav.top-nav { display: flex; gap: 18px; align-items: center; }
+    nav.top-nav a { color: var(--header-texto); text-decoration: none; font-size: 14px; opacity: .85; }
+    nav.top-nav a:hover { opacity: 1; text-decoration: underline; }
+    #toggle-tema {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: #fff;
+      border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px;
+    }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
     .card {
       background: var(--card); border: 1px solid var(--borde); border-radius: 12px;
       padding: 20px; margin-bottom: 16px;
@@ -29,34 +64,73 @@
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 14px; }
     th { color: var(--muted); font-weight: 600; }
     .btn {
-      display: inline-block; background: var(--azul); color: #fff; padding: 8px 16px;
+      display: inline-block; background: var(--mint); color: #fff; padding: 8px 16px;
       border-radius: 8px; text-decoration: none; font-weight: 600; border: none;
-      cursor: pointer; font-size: 14px;
+      cursor: pointer; font-size: 14px; font-family: var(--font-body);
     }
-    .btn.secundario { background: transparent; color: var(--azul); border: 1px solid var(--azul); }
+    .btn.secundario { background: transparent; color: var(--mint); border: 1px solid var(--mint); }
     .btn.violeta { background: var(--violeta); }
+    .btn.cyan { background: var(--cyan); color: var(--earth-800); }
     .pill {
       display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
       font-weight: 600; background: #eef2ff; color: var(--violeta);
     }
-    .pill.pendiente { background: #f1f5f9; color: var(--muted); }
-    .pill.en_progreso { background: #e0f2fe; color: var(--azul); }
-    .pill.completado { background: #dcfce7; color: #15803d; }
-    .pill.borrador { background: #f1f5f9; color: var(--muted); }
-    .pill.confirmada { background: #dcfce7; color: #15803d; }
-    .pill.entregada_oscar, .pill.validada_consume { background: #eef2ff; color: var(--violeta); }
-    .progreso-barra { background: #e2e8f0; border-radius: 999px; height: 8px; overflow: hidden; width: 100%; }
-    .progreso-barra > div { background: var(--cian); height: 100%; }
+    .pill.pendiente { background: rgba(130,145,168,.15); color: var(--muted); }
+    .pill.en_progreso { background: rgba(44,196,220,.15); color: var(--mint); }
+    .pill.completado { background: rgba(52,199,123,.15); color: var(--success); }
+    .pill.borrador { background: rgba(130,145,168,.15); color: var(--muted); }
+    .pill.confirmada { background: rgba(52,199,123,.15); color: var(--success); }
+    .pill.entregada_oscar, .pill.validada_consume { background: rgba(76,68,141,.15); color: var(--violeta); }
+    .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; width: 100%; }
+    .progreso-barra > div { background: var(--cyan); height: 100%; }
     .muted { color: var(--muted); font-size: 13px; }
-    a { color: var(--azul); }
+    a { color: var(--mint); }
+    input, textarea, select {
+      font-family: var(--font-body); background: var(--bg); color: var(--texto);
+      border: 1px solid var(--borde); border-radius: 8px; padding: 8px;
+    }
+    .stepper { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 0; }
+    .stepper .paso {
+      flex: 1; min-width: 150px; background: var(--bg); border: 1px solid var(--borde);
+      border-radius: 10px; padding: 12px 14px; font-size: 13.5px;
+    }
+    .stepper .paso b { display: block; font-family: var(--font-heading); color: var(--mint); margin-bottom: 4px; font-size: 13px; }
   </style>
 </head>
 <body>
   <header class="top">
-    <div class="brand">{{ brand_name }} <span>Discovery</span></div>
+    <div class="marca">
+      <img class="logo" src="/static/raifen-logo-blanco.png" alt="Raifen">
+      <div class="separador"></div>
+      <span class="titulo-proyecto">Discovery{% if proyecto %} — {{ proyecto.cliente }}{% endif %}</span>
+    </div>
+    <nav class="top-nav">
+      {% block nav %}{% endblock %}
+      <button id="toggle-tema" title="Cambiar tema claro/oscuro">🌙</button>
+    </nav>
   </header>
   <main>
     {% block content %}{% endblock %}
   </main>
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const btn = document.getElementById("toggle-tema");
+      const guardado = localStorage.getItem("discovery-tema");
+      if (guardado) root.setAttribute("data-theme", guardado);
+      function actual() {
+        return root.getAttribute("data-theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      }
+      function actualizarIcono() { btn.textContent = actual() === "dark" ? "☀️" : "🌙"; }
+      actualizarIcono();
+      btn.addEventListener("click", () => {
+        const nuevo = actual() === "dark" ? "light" : "dark";
+        root.setAttribute("data-theme", nuevo);
+        localStorage.setItem("discovery-tema", nuevo);
+        actualizarIcono();
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -1,0 +1,75 @@
+{% extends "_base.html" %}
+{% block title %}Editor — {{ proyecto.cliente }}{% endblock %}
+{% block nav %}<a href="/">← Dashboard</a>{% endblock %}
+{% block content %}
+  <div class="card">
+    <h1 style="margin:0 0 4px;">Banco de preguntas</h1>
+    <p class="muted" style="margin:0;">Los cambios se guardan directo en <code>config/proyecto.yaml</code> y se ven al instante en los formularios de los participantes.</p>
+  </div>
+
+  {% for tema in temas %}
+  <div class="card">
+    <h2 style="margin-top:0;">{{ tema.titulo }}</h2>
+    {% if tema.preguntas %}
+    <table>
+      <tr><th>Pregunta</th><th>Tipo</th><th></th></tr>
+      {% for pregunta in tema.preguntas %}
+      <tr>
+        <td>{{ pregunta.texto }}{% if pregunta.opciones %}<br><span class="muted">{{ pregunta.opciones | join(" · ") }}</span>{% endif %}</td>
+        <td><span class="pill en_progreso">{{ pregunta.tipo }}</span></td>
+        <td>
+          <form method="post" action="/admin/temas/{{ tema.id }}/preguntas/{{ pregunta.id }}/eliminar" onsubmit="return confirm('¿Eliminar esta pregunta? Las respuestas ya guardadas quedan en la base pero dejan de mostrarse.');">
+            <button class="btn secundario" style="padding:4px 10px;font-size:12.5px;" type="submit">Eliminar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="muted">Sin preguntas todavía en este tema.</p>
+    {% endif %}
+
+    <details style="margin-top:14px;">
+      <summary style="cursor:pointer;font-weight:600;font-size:14px;color:var(--mint);">+ Agregar pregunta a "{{ tema.titulo }}"</summary>
+      <form method="post" action="/admin/temas/{{ tema.id }}/preguntas" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-width:480px;">
+        <textarea name="texto" rows="2" placeholder="Texto de la pregunta" required></textarea>
+        <select name="tipo" class="selector-tipo" onchange="mostrarOpciones(this)">
+          <option value="texto_libre">Texto libre</option>
+          <option value="opcion_unica">Opción única</option>
+          <option value="opcion_multiple">Opción múltiple</option>
+          <option value="booleano">Sí / No</option>
+        </select>
+        <textarea name="opciones" rows="3" class="campo-opciones" style="display:none;" placeholder="Una opción por línea"></textarea>
+        <button class="btn secundario" type="submit" style="align-self:flex-start;">Agregar pregunta</button>
+      </form>
+    </details>
+  </div>
+  {% endfor %}
+
+  <div class="card">
+    <h2 style="margin-top:0;">Agregar tema (área) nuevo</h2>
+    <form method="post" action="/admin/temas" style="display:flex;gap:8px;max-width:480px;">
+      <input type="text" name="titulo" placeholder="Ej: Logística y despachos" required style="flex:1;">
+      <button class="btn secundario" type="submit">Crear tema</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Agregar participante (stakeholder)</h2>
+    <form method="post" action="/admin/participantes" style="display:flex;flex-direction:column;gap:8px;max-width:480px;">
+      <input type="text" name="nombre" placeholder="Nombre y apellido" required>
+      <input type="text" name="cargo" placeholder="Cargo (opcional)">
+      <input type="email" name="email" placeholder="Correo (opcional)">
+      <button class="btn secundario" type="submit" style="align-self:flex-start;">Agregar participante</button>
+    </form>
+    <p class="muted" style="margin-top:10px;">Genera su link personal al instante — lo vas a ver en el Dashboard.</p>
+  </div>
+
+  <script>
+    function mostrarOpciones(select) {
+      const form = select.closest("form");
+      const campo = form.querySelector(".campo-opciones");
+      campo.style.display = (select.value === "opcion_unica" || select.value === "opcion_multiple") ? "block" : "none";
+    }
+  </script>
+{% endblock %}

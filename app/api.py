@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import formato_empresa, render, settings, store, transcribe
@@ -19,6 +20,7 @@ from .auth_middleware import BasicAuthMiddleware
 
 app = FastAPI(title="Raifen Discovery")
 app.add_middleware(BasicAuthMiddleware)
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["brand_name"] = settings.BRAND_NAME
 
@@ -61,6 +63,61 @@ def sembrar():
     proyecto = _proyecto()
     store.sembrar_participantes(proyecto.get("participantes", []))
     return RedirectResponse(url="/", status_code=303)
+
+
+# ---------- Editor de banco de preguntas y participantes ----------
+
+@app.post("/admin/temas")
+async def crear_tema(request: Request):
+    form = await request.form()
+    titulo = (form.get("titulo") or "").strip()
+    if not titulo:
+        raise HTTPException(400, "falta el título del tema")
+    settings.agregar_tema(_proyecto(), titulo)
+    return RedirectResponse(url="/admin/editor", status_code=303)
+
+
+@app.post("/admin/temas/{tema_id}/preguntas")
+async def crear_pregunta(request: Request, tema_id: str):
+    form = await request.form()
+    texto = (form.get("texto") or "").strip()
+    tipo = (form.get("tipo") or "").strip()
+    if not texto or tipo not in ("texto_libre", "opcion_unica", "opcion_multiple", "booleano"):
+        raise HTTPException(400, "faltan datos de la pregunta")
+    opciones_raw = (form.get("opciones") or "").strip()
+    opciones = [o.strip() for o in opciones_raw.splitlines() if o.strip()] if opciones_raw else None
+    if tipo in ("opcion_unica", "opcion_multiple") and not opciones:
+        raise HTTPException(400, "este tipo de pregunta necesita al menos una opción")
+    settings.agregar_pregunta(_proyecto(), tema_id, texto, tipo, opciones)
+    return RedirectResponse(url="/admin/editor", status_code=303)
+
+
+@app.post("/admin/temas/{tema_id}/preguntas/{pregunta_id}/eliminar")
+def eliminar_pregunta(tema_id: str, pregunta_id: str):
+    settings.eliminar_pregunta(_proyecto(), tema_id, pregunta_id)
+    return RedirectResponse(url="/admin/editor", status_code=303)
+
+
+@app.post("/admin/participantes")
+async def crear_participante(request: Request):
+    form = await request.form()
+    nombre = (form.get("nombre") or "").strip()
+    cargo = (form.get("cargo") or "").strip()
+    email = (form.get("email") or "").strip()
+    if not nombre:
+        raise HTTPException(400, "falta el nombre del participante")
+    settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email)
+    store.sembrar_participantes([{"nombre": nombre, "cargo": cargo, "email": email}])
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/admin/editor", response_class=HTMLResponse)
+def editor(request: Request):
+    proyecto = _proyecto()
+    return templates.TemplateResponse(
+        request, "editor.html",
+        {"proyecto": proyecto, "temas": proyecto.get("temas", [])},
+    )
 
 
 @app.get("/admin/participantes/{pid}", response_class=HTMLResponse)

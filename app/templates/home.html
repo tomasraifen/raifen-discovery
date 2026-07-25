@@ -1,9 +1,16 @@
 {% extends "_base.html" %}
 {% block title %}{{ proyecto.cliente }} — Discovery{% endblock %}
+{% block nav %}<a href="/admin/editor">✎ Editar preguntas y participantes</a>{% endblock %}
 {% block content %}
   <div class="card">
     <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
     <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
+    <div class="stepper">
+      <div class="paso"><b>1. Compartir</b>Copiá el link de cada participante y mandáselo (WhatsApp, correo).</div>
+      <div class="paso"><b>2. Esperar</b>Cada uno completa su formulario a su ritmo — podés ver el progreso acá.</div>
+      <div class="paso"><b>3. Curar</b>Con las respuestas, armá reglas de negocio abajo y confirmalas.</div>
+      <div class="paso"><b>4. Aprobar</b>Cuando estén confirmadas, enviá el documento formal al cliente.</div>
+    </div>
   </div>
 
   <div class="card">
@@ -13,7 +20,7 @@
       <form method="post" action="/admin/sembrar"><button class="btn" type="submit">Sembrar participantes</button></form>
     {% else %}
       <table>
-        <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th>Progreso</th><th>Link</th><th></th></tr>
+        <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th>Progreso</th><th></th></tr>
         {% for p in participantes %}
         <tr>
           <td>{{ p.nombre }}</td>
@@ -23,22 +30,25 @@
             <div class="progreso-barra"><div style="width: {{ (p.progreso.cubiertos / p.progreso.total * 100) if p.progreso.total else 0 }}%;"></div></div>
             <span class="muted">{{ p.progreso.cubiertos }}/{{ p.progreso.total }}</span>
           </td>
-          <td><a href="{{ p.link }}" target="_blank">abrir link</a></td>
-          <td><a href="/admin/participantes/{{ p.id }}">ver →</a></td>
+          <td style="white-space:nowrap;">
+            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}" target="_blank" rel="noopener">Ver como participante ↗</a>
+            <a href="/admin/participantes/{{ p.id }}" style="margin-left:8px;">respuestas →</a>
+          </td>
         </tr>
         {% endfor %}
       </table>
+      <p class="muted" style="margin-top:10px;">"Ver como participante" abre el formulario tal cual lo ve esa persona — sin login de admin, la seguridad es el link personal.</p>
     {% endif %}
   </div>
 
   <div class="card">
     <h2 style="margin-top:0;">Curaduría — reglas de negocio</h2>
     <form method="post" action="/admin/reglas" style="margin-bottom:16px;">
-      <textarea name="texto" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--borde);" placeholder="Ej: una venta se considera válida cuando..."></textarea>
+      <textarea name="texto" rows="2" style="width:100%;" placeholder="Ej: una venta se considera válida cuando..."></textarea>
       <div style="margin-top:8px;"><button class="btn secundario" type="submit">Agregar regla</button></div>
     </form>
     {% if not reglas %}
-      <p class="muted">Sin reglas de negocio todavía.</p>
+      <p class="muted">Sin reglas de negocio todavía — se arman a partir de lo que respondan los participantes.</p>
     {% else %}
       <table>
         <tr><th>Regla</th><th>Estado</th><th></th></tr>
@@ -48,7 +58,7 @@
           <td><span class="pill {{ r.estado }}">{{ r.estado }}</span></td>
           <td>
             <form method="post" action="/admin/reglas/{{ r.id }}/estado" style="display:flex;gap:6px;">
-              <select name="estado" style="border-radius:6px;border:1px solid var(--borde);">
+              <select name="estado">
                 {% for e in ["borrador", "confirmada", "entregada_oscar", "validada_consume"] %}
                 <option value="{{ e }}" {% if r.estado == e %}selected{% endif %}>{{ e }}</option>
                 {% endfor %}

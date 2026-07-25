@@ -9,7 +9,7 @@ from starlette.responses import Response
 
 from . import settings
 
-PUBLIC_PREFIXES = ("/r/", "/health")
+PUBLIC_PREFIXES = ("/r/", "/health", "/static/")
 
 
 class BasicAuthMiddleware(BaseHTTPMiddleware):
