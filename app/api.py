@@ -52,9 +52,10 @@ def home(request: Request):
         p["progreso"] = store.progreso(p, total_preguntas)
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     reglas = store.listar_reglas()
+    resumen_temas = store.resumen_por_tema(proyecto, participantes)
     return templates.TemplateResponse(
         request, "home.html",
-        {"proyecto": proyecto, "participantes": participantes, "reglas": reglas},
+        {"proyecto": proyecto, "participantes": participantes, "reglas": reglas, "resumen_temas": resumen_temas},
     )
 
 
@@ -88,7 +89,8 @@ async def crear_pregunta(request: Request, tema_id: str):
     opciones = [o.strip() for o in opciones_raw.splitlines() if o.strip()] if opciones_raw else None
     if tipo in ("opcion_unica", "opcion_multiple") and not opciones:
         raise HTTPException(400, "este tipo de pregunta necesita al menos una opción")
-    settings.agregar_pregunta(_proyecto(), tema_id, texto, tipo, opciones)
+    ayuda = (form.get("ayuda") or "").strip() or None
+    settings.agregar_pregunta(_proyecto(), tema_id, texto, tipo, opciones, ayuda)
     return RedirectResponse(url="/admin/editor", status_code=303)
 
 
@@ -236,7 +238,16 @@ def finalizar(token: str):
     if not p:
         raise HTTPException(404, "link inválido")
     store.marcar_completado(p["id"])
-    return RedirectResponse(url=f"/r/{token}", status_code=303)
+    return JSONResponse({"ok": True, "siguiente": f"/r/{token}/gracias"})
+
+
+@app.get("/r/{token}/gracias", response_class=HTMLResponse)
+def gracias(request: Request, token: str):
+    p = store.obtener_por_token(token)
+    if not p:
+        raise HTTPException(404, "Este link no es válido.")
+    proyecto = _proyecto()
+    return templates.TemplateResponse(request, "gracias.html", {"p": p, "proyecto": proyecto})
 
 
 @app.post("/r/{token}/audio/{pregunta_id}")
@@ -261,7 +272,7 @@ async def enviar_audio(token: str, pregunta_id: str, file: UploadFile):
 
     texto = transcribe.transcribir(audio_bytes, file.filename or "audio.webm")
     if not texto:
-        raise HTTPException(502, "no se pudo transcribir el audio -- probá escribir la respuesta")
+        raise HTTPException(502, "no se pudo transcribir el audio -- escriba la respuesta directamente")
     return JSONResponse({"texto": texto})
 
 

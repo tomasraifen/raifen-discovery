@@ -12,16 +12,16 @@
       --cyan: #2CC4DC; --mint: #348AB7; --violeta: #4C448D; --earth-800: #001233;
       --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
       --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: #64748b; --borde: #e2e8f0;
-      --saber-bg: #eef2ff; --saber-borde: #c7d2fe; --logo: url('/static/raifen-logo.png');
+      --saber-bg: #eef2ff; --saber-borde: #c7d2fe;
     }
     :root[data-theme="dark"] {
       --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
-      --saber-bg: #14205e; --saber-borde: #4C448D; --logo: url('/static/raifen-logo-blanco.png');
+      --saber-bg: #14205e; --saber-borde: #4C448D;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
-        --saber-bg: #14205e; --saber-borde: #4C448D; --logo: url('/static/raifen-logo-blanco.png');
+        --saber-bg: #14205e; --saber-borde: #4C448D;
       }
     }
     * { box-sizing: border-box; }
@@ -31,37 +31,46 @@
       background: var(--earth-800);
       background-image: radial-gradient(ellipse 70% 60% at 15% 0%, rgba(76, 68, 141, 0.35), transparent 70%),
                          radial-gradient(ellipse 70% 60% at 90% 100%, rgba(44, 196, 220, 0.20), transparent 70%);
-      color: #fff; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+      color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
     }
     header .marca { display: flex; align-items: center; gap: 12px; }
     header img.logo { height: 24px; }
     header .cliente { font-family: var(--font-heading); font-weight: 600; font-size: 14px; opacity: .9; }
-    #toggle-tema { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
-    .wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
-    .intro { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; font-size: 14.5px; line-height: 1.5; }
-    .intro h1 { margin: 0 0 6px; font-size: 19px; }
-    .saber-card { background: var(--saber-bg); border: 1px solid var(--saber-borde); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 14px; }
-    .saber-card h3 { margin: 0 0 6px; color: var(--violeta); font-size: 14px; }
+    #toggle-tema { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: #fff; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; flex-shrink: 0; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 20px 24px; }
+    .intro { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 18px 22px; margin-bottom: 18px; font-size: 15px; line-height: 1.55; }
+    .intro h1 { margin: 0 0 8px; font-size: 20px; }
+    .saber-card { background: var(--saber-bg); border: 1px solid var(--saber-borde); border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; font-size: 14.5px; }
+    .saber-card h3 { margin: 0 0 8px; color: var(--violeta); font-size: 14.5px; }
     .saber-card textarea { width: 100%; margin-top: 8px; }
-    .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; margin: 10px 0 20px; }
+    .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; margin: 12px 0 22px; }
     .progreso-barra > div { background: var(--cyan); height: 100%; transition: width .3s; }
-    .tema { background: var(--card); border: 1px solid var(--borde); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-    .tema h2 { margin: 0 0 14px; font-size: 17px; color: var(--mint); }
-    .pregunta { margin-bottom: 20px; }
-    .pregunta label.texto-pregunta { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14.5px; }
-    .pregunta .ayuda { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; margin: -4px 0 6px; }
-    .pregunta textarea, .pregunta input[type=text], input, textarea, select {
-      width: 100%; border: 1px solid var(--borde); border-radius: 8px; padding: 10px; font-size: 14.5px;
+    .tema { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 24px 26px; margin-bottom: 18px; }
+    .tema h2 { margin: 0 0 18px; font-size: 18px; color: var(--mint); padding-bottom: 10px; border-bottom: 1px solid var(--borde); }
+    .pregunta { margin-bottom: 24px; }
+    .pregunta:last-child { margin-bottom: 0; }
+    .pregunta label.texto-pregunta { display: block; font-weight: 600; margin-bottom: 4px; font-size: 15px; }
+    .pregunta .ayuda { display: block; color: var(--muted); font-size: 13px; font-weight: 400; margin: 0 0 10px; line-height: 1.4; }
+    .pregunta textarea, .pregunta input[type=text] {
+      width: 100%; border: 1px solid var(--borde); border-radius: 8px; padding: 11px 12px; font-size: 15px;
       font-family: inherit; background: var(--bg); color: var(--texto);
     }
-    .opciones label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin: 4px 0; font-size: 14.5px; }
-    .fila-audio { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .icon-btn { background: var(--card); border: 1px solid var(--borde); color: var(--texto); border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .saber-card textarea { border: 1px solid var(--borde); border-radius: 8px; padding: 10px; font-family: inherit; background: var(--bg); color: var(--texto); font-size: 14.5px; }
+    .opciones { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .opciones label {
+      display: flex; align-items: flex-start; gap: 10px; font-weight: 400; font-size: 15px;
+      cursor: pointer; padding: 2px 0;
+    }
+    .opciones input[type=radio], .opciones input[type=checkbox] {
+      width: 18px; height: 18px; min-width: 18px; margin: 2px 0 0; accent-color: var(--mint); cursor: pointer;
+    }
+    .fila-audio { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+    .icon-btn { background: var(--bg); border: 1px solid var(--borde); color: var(--texto); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 13.5px; font-family: var(--font-body); }
     .icon-btn.grabando { background: #fee2e2; border-color: #fca5a5; color: #7f1d1d; }
     .guardado { font-size: 12.5px; color: var(--success); opacity: 0; transition: opacity .3s; font-weight: 600; }
     .guardado.visible { opacity: 1; }
-    .btn-finalizar { display: block; width: 100%; background: var(--violeta); color: #fff; border: none; border-radius: 10px; padding: 15px; font-size: 16px; font-weight: 700; font-family: var(--font-heading); cursor: pointer; margin-top: 8px; }
-    .cerrado-aviso { text-align: center; padding: 16px; color: var(--success); background: rgba(52,199,123,.12); border-radius: 10px; margin-bottom: 16px; font-weight: 600; }
+    .btn-finalizar { display: block; width: 100%; background: var(--violeta); color: #fff; border: none; border-radius: 10px; padding: 16px; font-size: 16px; font-weight: 700; font-family: var(--font-heading); cursor: pointer; margin-top: 10px; }
+    .cerrado-aviso { text-align: center; padding: 16px; color: var(--success); background: rgba(52,199,123,.12); border-radius: 10px; margin-bottom: 18px; font-weight: 600; }
     input[type=file] { display: none; }
   </style>
 </head>
@@ -73,18 +82,18 @@
 <div class="wrap">
   <div class="intro">
     <h1>Hola{% if p.nombre %}, {{ p.nombre.split(" ")[0] }}{% endif %} 👋</h1>
-    <p style="margin:0;">Este es un formulario corto sobre cómo funciona el negocio hoy — nos ayuda a entender qué construir. No hay respuestas correctas o incorrectas: contá lo que pasa en la práctica. Podés escribir o grabar tu respuesta en voz, y volver cuando quieras — todo se guarda solo, no hace falta terminarlo de una sola vez.</p>
+    <p style="margin:0;">Este es un formulario corto sobre cómo funciona el negocio hoy — ayuda a entender qué construir. No hay respuestas correctas o incorrectas: lo importante es contar lo que pasa en la práctica. Se puede escribir o grabar la respuesta en voz, y volver más tarde — todo se guarda solo, no hace falta terminarlo de una sola vez.</p>
   </div>
 
   {% if p.estado == "completado" %}
-  <div class="cerrado-aviso">✓ Marcaste este formulario como finalizado — ¡gracias! Si querés agregar algo más, podés seguir editando tus respuestas.</div>
+  <div class="cerrado-aviso">✓ Este formulario ya se marcó como finalizado — ¡gracias! Se puede seguir editando si aparece algo más para agregar.</div>
   {% endif %}
 
   {% if proyecto.lo_que_ya_sabemos and proyecto.lo_que_ya_sabemos.strip() %}
   <div class="saber-card">
     <h3>Esto es lo que ya sabemos de su negocio</h3>
     <p style="margin:0;">{{ proyecto.lo_que_ya_sabemos }}</p>
-    <p class="muted" style="margin:6px 0 0;font-size:12.5px;">Si algo de esto ya cambió o no es exacto, contanoslo acá:</p>
+    <p class="muted" style="margin:8px 0 0;font-size:12.5px;">Si algo de esto ya cambió o no es exacto, se puede indicar acá:</p>
     <textarea id="correcciones" rows="2" placeholder="Ej: ya no usamos ese sistema, lo cambiamos en marzo...">{{ p.correcciones_ya_sabemos or "" }}</textarea>
     <span class="guardado" id="guardado-correcciones">Guardado ✓</span>
   </div>
@@ -100,10 +109,11 @@
         {% set r = respuestas.get(pregunta.id) %}
         <div class="pregunta" data-pregunta-id="{{ pregunta.id }}" data-tipo="{{ pregunta.tipo }}">
           <label class="texto-pregunta">{{ pregunta.texto }}</label>
-          {% if pregunta.tipo == "opcion_multiple" %}<span class="ayuda">Podés elegir más de una opción.</span>{% endif %}
+          {% if pregunta.ayuda %}<span class="ayuda">{{ pregunta.ayuda }}</span>{% endif %}
+          {% if pregunta.tipo == "opcion_multiple" %}<span class="ayuda">Se puede elegir más de una opción.</span>{% endif %}
 
           {% if pregunta.tipo == "texto_libre" %}
-            <textarea rows="2" class="campo-valor" placeholder="Escribí su respuesta acá...">{{ r.valor if r else "" }}</textarea>
+            <textarea rows="2" class="campo-valor" placeholder="Escribir la respuesta acá...">{{ r.valor if r else "" }}</textarea>
             <div class="fila-audio">
               <button type="button" class="icon-btn btn-audio">🎙️ Grabar respuesta en voz</button>
               <span class="guardado">Guardado ✓</span>
@@ -112,7 +122,7 @@
           {% elif pregunta.tipo == "opcion_unica" %}
             <div class="opciones">
               {% for op in pregunta.opciones %}
-              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="{{ op }}" {% if r and r.valor == op %}checked{% endif %}> {{ op }}</label>
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="{{ op }}" {% if r and r.valor == op %}checked{% endif %}> <span>{{ op }}</span></label>
               {% endfor %}
             </div>
             <span class="guardado">Guardado ✓</span>
@@ -120,15 +130,15 @@
           {% elif pregunta.tipo == "opcion_multiple" %}
             <div class="opciones">
               {% for op in pregunta.opciones %}
-              <label><input type="checkbox" class="campo-valor" value="{{ op }}" {% if r and op in (r.valor or []) %}checked{% endif %}> {{ op }}</label>
+              <label><input type="checkbox" class="campo-valor" value="{{ op }}" {% if r and op in (r.valor or []) %}checked{% endif %}> <span>{{ op }}</span></label>
               {% endfor %}
             </div>
             <span class="guardado">Guardado ✓</span>
 
           {% elif pregunta.tipo == "booleano" %}
             <div class="opciones">
-              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="si" {% if r and r.valor == "si" %}checked{% endif %}> Sí</label>
-              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="no" {% if r and r.valor == "no" %}checked{% endif %}> No</label>
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="si" {% if r and r.valor == "si" %}checked{% endif %}> <span>Sí</span></label>
+              <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="no" {% if r and r.valor == "no" %}checked{% endif %}> <span>No</span></label>
             </div>
             <span class="guardado">Guardado ✓</span>
           {% endif %}
@@ -137,11 +147,11 @@
     </div>
     {% endfor %}
 
-    <button type="button" class="icon-btn" id="btn-adjunto" style="margin-bottom:12px;">📎 Adjuntar un archivo o pantallazo</button>
+    <button type="button" class="icon-btn" id="btn-adjunto" style="margin-bottom:14px;">📎 Adjuntar un archivo o pantallazo</button>
     <input type="file" id="input-archivo">
 
     <button type="submit" class="btn-finalizar">✓ Marcar formulario como finalizado</button>
-    <p class="muted" style="text-align:center;margin-top:8px;font-size:12.5px;">Tranquilo, esto no bloquea nada — podés seguir editando después si te acordás de algo más.</p>
+    <p class="muted" style="text-align:center;margin-top:10px;font-size:12.5px;">Esto no bloquea nada — se puede seguir editando después si aparece algo más.</p>
   </form>
 </div>
 
@@ -229,7 +239,7 @@ document.getElementById("input-archivo").addEventListener("change", async (ev) =
   const fd = new FormData();
   fd.append("file", file);
   await fetch(`/r/${TOKEN}/adjunto`, {method: "POST", body: fd});
-  alert(`Adjunté "${file.name}"`);
+  alert(`Se adjuntó "${file.name}"`);
   ev.target.value = "";
 });
 
@@ -267,7 +277,7 @@ document.querySelectorAll(".btn-audio").forEach((btn) => {
             guardarRespuesta(preguntaId, data.texto, "audio", guardadoEl);
           }
         } catch (e) {
-          alert("No se pudo transcribir el audio. Podés escribir la respuesta directamente.");
+          alert("No se pudo transcribir el audio. Se puede escribir la respuesta directamente.");
         }
         btn.disabled = false;
         btn.textContent = "🎙️ Grabar respuesta en voz";
@@ -283,8 +293,9 @@ document.querySelectorAll(".btn-audio").forEach((btn) => {
 
 document.getElementById("form-discovery").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  await fetch(`/r/${TOKEN}/finalizar`, {method: "POST"});
-  window.location.reload();
+  const resp = await fetch(`/r/${TOKEN}/finalizar`, {method: "POST"});
+  const data = await resp.json();
+  window.location.href = data.siguiente;
 });
 </script>
 </body>

@@ -31,7 +31,7 @@ temas:
     titulo: "Contexto de negocio"
     preguntas:
       - id: que_hace
-        texto: "En tus palabras, ¿qué hace la empresa y cómo genera ingresos hoy?"
+        texto: "En sus palabras, ¿qué hace la empresa y cómo genera ingresos hoy?"
         tipo: texto_libre
       - id: prioridad_estrategica
         texto: "¿Cuál es la prioridad estratégica del negocio en este momento?"
@@ -66,16 +66,18 @@ temas:
         tipo: texto_libre
 
   - id: reglas_negocio
-    titulo: "Reglas de negocio"
+    titulo: "Cómo funcionan las cosas en la práctica"
     preguntas:
       - id: definicion_evento_clave
-        texto: "¿Qué cuenta como [evento de negocio clave, ej. venta válida]? ¿Hay excepciones o casos borde?"
+        texto: "¿Cuándo se considera que [ej. una venta] quedó cerrada de verdad? ¿Hay casos raros o excepciones a esa regla?"
+        ayuda: "Buscamos la definición real que usa el equipo día a día, no la del manual — por ejemplo: ¿cuenta como venta cuando se factura, cuando se cobra, o cuando se entrega? ¿Qué pasa con una devolución?"
         tipo: texto_libre
       - id: reglas_variables
-        texto: "¿Hay reglas que cambian según canal, región, tipo de cliente o época del año?"
+        texto: "¿Esa definición cambia según el canal, la región, el tipo de cliente o la época del año?"
+        ayuda: "Ej: capaz una venta online se cierra distinto que una venta en tienda física."
         tipo: booleano
       - id: gobernanza
-        texto: "¿Quién aprueba un cambio en la definición de una métrica o regla de negocio?"
+        texto: "Si alguien quiere cambiar cómo se mide algo (ej. qué cuenta como cliente activo), ¿quién tiene que aprobarlo?"
         tipo: texto_libre
 
 # Cada persona del cliente que va a completar su propio modulo. token se genera al

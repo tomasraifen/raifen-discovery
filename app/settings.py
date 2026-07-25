@@ -86,7 +86,10 @@ def agregar_tema(proyecto: dict, titulo: str) -> dict:
     return proyecto
 
 
-def agregar_pregunta(proyecto: dict, tema_id: str, texto: str, tipo: str, opciones: list[str] | None = None) -> dict:
+def agregar_pregunta(
+    proyecto: dict, tema_id: str, texto: str, tipo: str,
+    opciones: list[str] | None = None, ayuda: str | None = None,
+) -> dict:
     for tema in proyecto.get("temas", []):
         if tema["id"] == tema_id:
             pregunta_id = _slug(texto)
@@ -97,6 +100,8 @@ def agregar_pregunta(proyecto: dict, tema_id: str, texto: str, tipo: str, opcion
                 pregunta_id_final = f"{pregunta_id}_{sufijo}"
                 sufijo += 1
             nueva = {"id": pregunta_id_final, "texto": texto, "tipo": tipo}
+            if ayuda:
+                nueva["ayuda"] = ayuda
             if tipo in ("opcion_unica", "opcion_multiple") and opciones:
                 nueva["opciones"] = opciones
             tema["preguntas"].append(nueva)

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/static/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <title>Gracias — {{ proyecto.cliente }}</title>
+  <style>
+    :root {
+      --cyan: #2CC4DC; --mint: #348AB7; --violeta: #4C448D; --earth-800: #001233;
+      --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
+      --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: #64748b; --borde: #e2e8f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: var(--font-body); background: var(--earth-800); color: #fff; margin: 0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      background-image: radial-gradient(ellipse 75% 65% at 15% 20%, rgba(76, 68, 141, 0.42), transparent 70%),
+                         radial-gradient(ellipse 80% 70% at 85% 80%, rgba(44, 196, 220, 0.28), transparent 70%);
+    }
+    .card { background: var(--card); color: var(--texto); border-radius: 16px; padding: 44px 36px; max-width: 440px; margin: 20px; }
+    .check { font-size: 46px; margin-bottom: 10px; }
+    h1 { font-family: var(--font-heading); margin: 0 0 10px; font-size: 22px; }
+    p { line-height: 1.55; color: var(--muted); margin: 0 0 20px; }
+    a.btn { display: inline-block; background: var(--mint); color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-family: var(--font-heading); font-size: 14px; }
+    img.logo { height: 22px; margin-top: 28px; opacity: .5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">✅</div>
+    <h1>¡Gracias{% if p.nombre %}, {{ p.nombre.split(" ")[0] }}{% endif %}!</h1>
+    <p>El formulario quedó registrado. El equipo de Raifen va a revisar todo esto y va a seguir en contacto sobre los próximos pasos del proyecto con {{ proyecto.cliente }}.</p>
+    <a class="btn" href="/r/{{ p.token }}">Volver a mis respuestas</a>
+    <br><img class="logo" src="/static/raifen-logo.png" alt="Raifen">
+  </div>
+</body>
+</html>

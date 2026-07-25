@@ -204,3 +204,19 @@ def listar_aprobaciones() -> list[dict]:
 def progreso(p: dict, total_preguntas: int) -> dict:
     respondidas = len(get_respuestas(p))
     return {"cubiertos": min(respondidas, total_preguntas), "total": total_preguntas}
+
+
+def resumen_por_tema(proyecto: dict, participantes: list[dict]) -> list[dict]:
+    """Vista de panel de control: por cada tema, cuantas preguntas del total ya tienen
+    al menos una respuesta guardada (de cualquier participante) -- responde "que areas
+    ya se saben algo y cuales siguen en blanco"."""
+    resumen = []
+    ids_respondidos = set()
+    for p in participantes:
+        p_completo = obtener(p["id"])
+        ids_respondidos |= set(get_respuestas(p_completo).keys())
+    for tema in proyecto.get("temas", []):
+        preguntas = tema.get("preguntas", [])
+        cubiertas = sum(1 for pr in preguntas if pr["id"] in ids_respondidos)
+        resumen.append({"titulo": tema["titulo"], "cubiertas": cubiertas, "total": len(preguntas)})
+    return resumen
