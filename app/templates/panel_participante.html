@@ -52,10 +52,15 @@
     header img.logo { height: 36px; display: block; }
     header .cliente { font-family: var(--font-heading); font-weight: 600; font-size: 14px; opacity: .85; color: var(--header-texto); }
     #toggle-tema { background: rgba(44,196,220,.15); border: 1px solid currentColor; opacity: .9; color: var(--header-texto); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; }
-    .wrap { max-width: 1140px; margin: 0 auto; padding: 20px 24px 60px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    .wrap { max-width: 1500px; margin: 0 auto; padding: 20px 24px 60px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: stretch; }
     @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
     .card { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
+    .grid-2 > .card { display: flex; flex-direction: column; max-height: 420px; overflow-y: auto; }
+    select {
+      font-family: var(--font-body); background: var(--card-inset); color: var(--texto);
+      border: 1px solid var(--borde); border-radius: 8px; padding: 9px 12px; font-size: 14px;
+    }
     .saber-card { background: var(--saber-bg); border: 1px solid var(--saber-borde); }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 14px; }
@@ -82,14 +87,24 @@
     <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
     <p class="muted" style="margin:0 0 14px;">Así va el discovery del proyecto — quién ya respondió y qué áreas están cubiertas.</p>
     {% if proyecto.formularios | length > 1 %}
-      <p class="muted" style="margin:0 0 10px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        {% for f in proyecto.formularios %}
-        <a class="btn {% if f.id != p.formulario_id %}secundario{% endif %}" style="{% if f.id != p.formulario_id %}background:transparent;color:var(--mint);border:1px solid var(--mint);{% endif %}" href="/r/{{ p.token }}?formulario={{ f.id }}">
-          {{ f.nombre }}{% if f.id == p.formulario_id %} (el mío){% endif %} →
-        </a>
-        {% endfor %}
+      <p class="muted" style="margin:0 0 8px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select id="selector-formulario" style="min-width:240px;">
+          {% for f in proyecto.formularios %}
+          <option value="{{ f.id }}" {% if f.id == p.formulario_id %}selected{% endif %}>{{ f.nombre }}{% if f.id == p.formulario_id %} (el mío){% endif %}</option>
+          {% endfor %}
+        </select>
+        <a class="btn" id="btn-ir-formulario" href="/r/{{ p.token }}">Ir →</a>
       </div>
+      <script>
+        (function () {
+          const sel = document.getElementById("selector-formulario");
+          const btn = document.getElementById("btn-ir-formulario");
+          function actualizar() { btn.href = "/r/{{ p.token }}?formulario=" + sel.value; }
+          sel.addEventListener("change", () => { actualizar(); btn.click(); });
+          actualizar();
+        })();
+      </script>
     {% else %}
       <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
     {% endif %}

@@ -73,14 +73,19 @@
       background: var(--header-link-hover); border: 1px solid currentColor; opacity: .9; color: var(--header-texto);
       border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px;
     }
-    main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 64px; }
+    main { max-width: 1600px; margin: 0 auto; padding: 24px 28px 64px; }
     .card {
       background: var(--card); border: 1px solid var(--borde); border-radius: 12px;
       padding: 20px; margin-bottom: 16px;
     }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
-    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: stretch; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: stretch; }
     @media (max-width: 960px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+    /* Tarjetas emparejadas: mismo alto siempre, scroll interno si el contenido crece
+       en vez de estirar la tarjeta y desparejar todo. */
+    .grid-2 > .card, .grid-3 > .card {
+      display: flex; flex-direction: column; max-height: 420px; overflow-y: auto;
+    }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 14px; }
     th { color: var(--muted); font-weight: 600; }
