@@ -92,7 +92,7 @@
 </head>
 <body>
 <header>
-  <a class="marca" href="/r/{{ p.token }}/panel">
+  <a class="marca" href="{% if p %}/r/{{ p.token }}/panel{% else %}/admin/panel{% endif %}">
     <img class="logo" src="/static/raifen-logo.png" alt="Raifen">
     <span class="cliente">Panel general — {{ proyecto.cliente }}</span>
   </a>
@@ -104,6 +104,7 @@
       <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
       <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ ¿Cómo funciona esto?</button>
     </div>
+    {% if p %}
     <p class="muted" style="margin:0 0 14px;">Complete las preguntas de su formulario a su ritmo — se guardan solas, puede volver cuando quiera y grabar sus respuestas en voz si prefiere. Acá abajo ve el avance de todo el proyecto.</p>
     {% if proyecto.formularios | length > 1 %}
       <p class="muted" style="margin:0 0 8px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
@@ -128,6 +129,9 @@
       <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
     {% else %}
       <p class="muted" style="margin:0;">No tiene un formulario asignado todavía — es un contacto del proyecto. Si corresponde que complete uno, pídanselo a quien coordina el discovery.</p>
+    {% endif %}
+    {% else %}
+    <p class="muted" style="margin:0;">Vista de administrador — así ven este panel general los participantes del proyecto (sin login, cada uno lo abre desde su link personal).</p>
     {% endif %}
   </div>
 
@@ -156,7 +160,7 @@
         <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th style="width:110px;">Avance</th></tr>
         {% for part in participantes %}
         <tr>
-          <td>{{ part.nombre }}{% if part.id == p.id %} <span class="muted">(usted)</span>{% endif %}</td>
+          <td>{{ part.nombre }}{% if p and part.id == p.id %} <span class="muted">(usted)</span>{% endif %}</td>
           <td>{{ part.cargo or "—" }}</td>
           <td><span class="pill {{ part.estado }}">{{ part.estado }}</span></td>
           <td>

@@ -8,7 +8,10 @@
         <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
         <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
       </div>
-      <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ Cómo funciona esto</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">👁️ Ver como usuario</a>
+        <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ Cómo funciona esto</button>
+      </div>
     </div>
   </div>
 
@@ -115,16 +118,15 @@
             <span class="muted">{{ p.progreso.cubiertos }}/{{ p.progreso.total }}</span>
           </td>
           <td style="white-space:nowrap;">
-            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}/panel" target="_blank" rel="noopener">panel ↗</a>
             {% if p.formulario_id_resuelto %}
-            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;margin-left:4px;" href="{{ p.link }}" target="_blank" rel="noopener">formulario ↗</a>
+            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}" target="_blank" rel="noopener">formulario ↗</a>
             {% endif %}
             <a href="/admin/participantes/{{ p.id }}" style="margin-left:8px;">respuestas →</a>
           </td>
         </tr>
         {% endfor %}
       </table>
-      <p class="muted" style="margin-top:10px;">"panel" abre su panel general tal cual lo ve esa persona; "formulario" va directo a lo que tiene asignado — sin login de admin, la seguridad es el link personal.</p>
+      <p class="muted" style="margin-top:10px;">"formulario" va directo a lo que esa persona tiene asignado — sin login de admin, la seguridad es el link personal. El panel general de cualquier participante se ve con "Ver como usuario", arriba.</p>
     {% endif %}
 
     <details style="margin-top:16px;">

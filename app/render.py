@@ -5,7 +5,6 @@ cliente a mano si corresponde.
 
 Las secciones a incluir son configurables (Tom decide que mandar cada vez, no siempre
 todo) -- ver Fase 4/enviar_aprobacion en api.py."""
-from datetime import datetime, timezone
 
 SECCIONES_VALIDAS = {"lo_que_sabemos", "stakeholders", "reglas", "progreso"}
 
@@ -19,21 +18,10 @@ def documento_aprobacion(
     participantes: list[dict] | None = None,
     resumen_temas: list[dict] | None = None,
 ) -> str:
-    fecha = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    correo_cliente = proyecto.get("correo_aprobacion", "(sin definir en proyecto.yaml)")
-
-    lineas = [
-        f"# Discovery — {proyecto['cliente']} | {fecha}",
-        "",
-        f"⚠️ **Borrador para revisión interna — todavía NO se envió al cliente.** "
-        f"Destinatario final previsto (una vez aprobado acá): `{correo_cliente}`.",
-        "",
-        f"Documento armado a mano por Catequil desde el proyecto "
-        f"**{proyecto.get('proyecto', proyecto['cliente'])}** — incluye solo las secciones elegidas al enviar.",
-    ]
+    lineas: list[str] = []
 
     if "lo_que_sabemos" in secciones and (proyecto.get("lo_que_ya_sabemos") or "").strip():
-        lineas += ["", "## Lo que ya sabemos del negocio", "", proyecto["lo_que_ya_sabemos"].strip()]
+        lineas += ["# Lo que ya sabemos del negocio", "", proyecto["lo_que_ya_sabemos"].strip()]
 
     if "stakeholders" in secciones and participantes:
         lineas += ["", "## Stakeholders", "", "| Nombre | Cargo | Correo | Formulario | Estado |", "|---|---|---|---|---|"]
@@ -58,10 +46,4 @@ def documento_aprobacion(
         if not confirmadas:
             lineas.append("| — | *Sin reglas confirmadas todavía* | — | — |")
 
-    lineas += [
-        "",
-        "---",
-        f"*Revisar. Si está listo para el cliente, reenviar manualmente a "
-        f"`{correo_cliente}` — este documento no sale de Raifen automáticamente.*",
-    ]
     return "\n".join(lineas)

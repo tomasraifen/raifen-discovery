@@ -80,6 +80,29 @@ def home(request: Request):
     )
 
 
+@app.get("/admin/panel", response_class=HTMLResponse)
+def admin_panel(request: Request):
+    """Vista de admin para previsualizar el panel general tal como lo ve cualquier
+    participante -- sin atarse al token de uno puntual (a diferencia de
+    /r/<token>/panel, que sí es el de una persona real)."""
+    proyecto = _proyecto()
+    participantes = store.listar_participantes()
+    for part in participantes:
+        formulario_part = _formulario_de(proyecto, part)
+        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])) if formulario_part else 0
+        part["progreso"] = store.progreso(part, total)
+        part["formulario_nombre"] = formulario_part["nombre"] if formulario_part else "— sin formulario asignado —"
+    resumen_temas = store.resumen_por_tema(proyecto, participantes)
+    reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
+    return templates.TemplateResponse(
+        request, "panel_participante.html",
+        {
+            "p": None, "proyecto": proyecto, "participantes": participantes, "resumen_temas": resumen_temas,
+            "reglas_confirmadas": reglas_confirmadas,
+        },
+    )
+
+
 @app.post("/admin/sembrar")
 def sembrar():
     proyecto = _proyecto()
