@@ -247,7 +247,15 @@ def resumen_por_tema(proyecto: dict, participantes: list[dict]) -> list[dict]:
     formularios = proyecto.get("formularios", [])
     multi = len(formularios) > 1
     for formulario in formularios:
-        for tema in formulario.get("temas", []):
+        temas = formulario.get("temas", [])
+        if not temas:
+            # El formulario existe pero todavia no tiene areas/preguntas cargadas --
+            # se muestra igual (con 0/0) para que no desaparezca de la vista, en vez de
+            # simplemente no listarlo.
+            titulo = f"{formulario['nombre']} — sin preguntas todavía" if multi else "Sin preguntas todavía"
+            resumen.append({"titulo": titulo, "cubiertas": 0, "total": 0})
+            continue
+        for tema in temas:
             preguntas = tema.get("preguntas", [])
             cubiertas = sum(1 for pr in preguntas if pr["id"] in ids_respondidos)
             titulo = f"{tema['titulo']} — {formulario['nombre']}" if multi else tema["titulo"]

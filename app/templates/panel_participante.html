@@ -124,8 +124,10 @@
           actualizar();
         })();
       </script>
-    {% else %}
+    {% elif p.formulario_id %}
       <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
+    {% else %}
+      <p class="muted" style="margin:0;">No tiene un formulario asignado todavía — es un contacto del proyecto. Si corresponde que complete uno, pídanselo a quien coordina el discovery.</p>
     {% endif %}
   </div>
 

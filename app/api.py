@@ -43,13 +43,17 @@ def _pregunta_por_id(proyecto: dict, pregunta_id: str) -> dict | None:
     return None
 
 
-def _formulario_de(proyecto: dict, p: dict, formulario_id: str | None = None) -> dict:
+def _formulario_de(proyecto: dict, p: dict, formulario_id: str | None = None) -> dict | None:
     """Formulario a mostrar: el pedido explicitamente (?formulario=<id>, para que un
     participante pueda ver/responder cualquier formulario del proyecto desde su mismo
-    link, no solo el asignado por default) o, si no se pide ninguno, el asignado."""
-    fid = formulario_id or p.get("formulario_id") or settings.DEFAULT_FORMULARIO_ID
-    formulario = settings.formulario_por_id(proyecto, fid)
-    return formulario or proyecto["formularios"][0]
+    link, no solo el asignado por default) o, si no se pide ninguno, el asignado.
+    Devuelve None si el participante es solo un stakeholder sin formulario asignado y
+    no se pidio ninguno puntual -- ver Fase 2 de catequil.md, no todos los contactos de
+    un proyecto tienen que completar un formulario."""
+    fid = formulario_id or p.get("formulario_id")
+    if not fid:
+        return None
+    return settings.formulario_por_id(proyecto, fid) or (proyecto["formularios"][0] if proyecto.get("formularios") else None)
 
 
 # ---------- Admin ----------
@@ -60,8 +64,10 @@ def home(request: Request):
     participantes = store.listar_participantes()
     for p in participantes:
         formulario = _formulario_de(proyecto, p)
-        p["formulario_nombre"] = formulario["nombre"]
-        p["progreso"] = store.progreso(p, len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"])))
+        p["formulario_nombre"] = formulario["nombre"] if formulario else None
+        p["formulario_id_resuelto"] = formulario["id"] if formulario else None
+        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"])) if formulario else 0
+        p["progreso"] = store.progreso(p, total)
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     reglas = store.listar_reglas()
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
@@ -139,7 +145,7 @@ async def crear_participante(request: Request):
     nombre = (form.get("nombre") or "").strip()
     cargo = (form.get("cargo") or "").strip()
     email = (form.get("email") or "").strip()
-    formulario_id = (form.get("formulario_id") or "").strip() or settings.DEFAULT_FORMULARIO_ID
+    formulario_id = (form.get("formulario_id") or "").strip()  # vacio = solo stakeholder, sin formulario
     if not nombre:
         raise HTTPException(400, "falta el nombre del participante")
     settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email, formulario_id)
@@ -150,9 +156,7 @@ async def crear_participante(request: Request):
 @app.post("/admin/participantes/{pid}/formulario")
 async def reasignar_formulario(request: Request, pid: str):
     form = await request.form()
-    formulario_id = (form.get("formulario_id") or "").strip()
-    if not formulario_id:
-        raise HTTPException(400, "falta el formulario")
+    formulario_id = (form.get("formulario_id") or "").strip()  # vacio = pasa a ser solo stakeholder
     store.actualizar_formulario_participante(pid, formulario_id)
     return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
 
@@ -242,7 +246,9 @@ def ver_participante(request: Request, pid: str):
     # Solo adjuntos de preguntas de ESTE formulario (o sin pregunta asociada, ej. un
     # adjunto general) -- antes se mostraban los de cualquier formulario que el
     # participante hubiera tenido asignado alguna vez.
-    ids_preguntas_formulario = {pr["id"] for t in formulario.get("temas", []) for pr in t.get("preguntas", [])}
+    ids_preguntas_formulario = {
+        pr["id"] for t in (formulario.get("temas", []) if formulario else []) for pr in t.get("preguntas", [])
+    }
     adjuntos = [
         a for a in store.listar_adjuntos(pid)
         if not a.get("pregunta_id") or a["pregunta_id"] in ids_preguntas_formulario
@@ -252,7 +258,7 @@ def ver_participante(request: Request, pid: str):
         request, "admin_participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas, "adjuntos": adjuntos, "link": link,
-            "temas": formulario.get("temas", []), "formulario": formulario,
+            "temas": formulario.get("temas", []) if formulario else [], "formulario": formulario,
             "formularios": proyecto.get("formularios", []),
         },
     )
@@ -301,19 +307,36 @@ async def actualizar_regla(request: Request, rid: str):
 
 
 @app.post("/admin/aprobacion/enviar")
-def enviar_aprobacion():
+async def enviar_aprobacion(request: Request):
+    form = await request.form()
+    secciones = {s for s in render.SECCIONES_VALIDAS if form.get(f"incluir_{s}")}
+    # Preseteado a ADMIN_REVIEW_EMAIL pero editable -- pedido explicito de Tom para
+    # poder mandarselo a otro empleado de Raifen o reenviarlo el mismo a quien
+    # corresponda. El default sigue siendo la revision interna; a quien se lo termine
+    # mandando queda a criterio de quien lo envia desde acá, no hardcodeado.
+    correo_destino = (form.get("correo") or "").strip() or settings.ADMIN_REVIEW_EMAIL
+
     proyecto = _proyecto()
     reglas = store.listar_reglas()
-    participantes = {p["id"]: p for p in store.listar_participantes()}
-    documento = render.documento_aprobacion(proyecto, reglas, participantes)
+    participantes_lista = store.listar_participantes()
+    for p in participantes_lista:
+        formulario_p = _formulario_de(proyecto, p)
+        p["formulario_nombre"] = formulario_p["nombre"] if formulario_p else "— sin asignar —"
+    participantes_por_id = {p["id"]: p for p in participantes_lista}
+    resumen_temas = store.resumen_por_tema(proyecto, participantes_lista)
+
+    documento = render.documento_aprobacion(
+        proyecto, reglas, participantes_por_id,
+        secciones=secciones, participantes=participantes_lista, resumen_temas=resumen_temas,
+    )
     ok, error = formato_empresa.enviar_para_aprobacion(
         markdown_text=documento,
-        correo_referencia=settings.ADMIN_REVIEW_EMAIL,  # NUNCA el cliente -- siempre revisión interna primero
-        nombre_documento=f"Reglas de Negocio — {proyecto['cliente']}",
+        correo_referencia=correo_destino,
+        nombre_documento=f"Discovery — {proyecto['cliente']}",
         nombre_proyecto=proyecto.get("proyecto", proyecto["cliente"]),
         nombre_cliente=proyecto["cliente"],
     )
-    store.registrar_aprobacion(documento, settings.ADMIN_REVIEW_EMAIL, None if ok else error)
+    store.registrar_aprobacion(documento, correo_destino, None if ok else error)
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -331,6 +354,10 @@ def relevar(request: Request, token: str, formulario: str | None = None):
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
     formulario_actual = _formulario_de(proyecto, p, formulario)
+    if not formulario_actual:
+        # Stakeholder sin formulario asignado y sin pedir uno puntual -- no hay nada que
+        # completar, lo mandamos al panel (ahi puede elegir uno si el proyecto tiene).
+        return RedirectResponse(url=f"/r/{token}/panel", status_code=303)
     respuestas = store.get_respuestas(p)
     total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario_actual["id"]))
     return templates.TemplateResponse(
@@ -350,7 +377,6 @@ async def guardar_respuesta(request: Request, token: str):
     if not p:
         raise HTTPException(404, "link inválido")
     proyecto = _proyecto()
-    formulario = _formulario_de(proyecto, p)
     body = await request.json()
     pregunta_id = body.get("pregunta_id")
     valor = body.get("valor")
@@ -359,7 +385,10 @@ async def guardar_respuesta(request: Request, token: str):
         raise HTTPException(400, "pregunta inválida")
     store.guardar_respuesta(p["id"], pregunta_id, valor, fuente=body.get("fuente", "texto"))
     p_actualizado = store.obtener(p["id"])
-    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"]))
+    # El progreso se calcula sobre el formulario AL QUE PERTENECE la pregunta que se
+    # acaba de responder (puede no ser el default del participante, si esta viendo otro
+    # formulario del proyecto via ?formulario=).
+    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=pregunta["formulario_id"]))
     return JSONResponse({"ok": True, "progreso": store.progreso(p_actualizado, total_preguntas)})
 
 
@@ -410,8 +439,9 @@ def panel_participante(request: Request, token: str):
     participantes = store.listar_participantes()
     for part in participantes:
         formulario_part = _formulario_de(proyecto, part)
-        part["progreso"] = store.progreso(part, len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])))
-        part["formulario_nombre"] = formulario_part["nombre"]
+        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])) if formulario_part else 0
+        part["progreso"] = store.progreso(part, total)
+        part["formulario_nombre"] = formulario_part["nombre"] if formulario_part else "— sin formulario asignado —"
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(

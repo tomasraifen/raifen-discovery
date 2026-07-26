@@ -82,6 +82,7 @@
       <input type="email" name="email" placeholder="Correo (opcional)">
       <label class="muted" style="font-size:12px;">Formulario asignado</label>
       <select name="formulario_id">
+        <option value="">— Sin formulario, solo stakeholder —</option>
         {% for formulario in formularios %}
         <option value="{{ formulario.id }}">{{ formulario.nombre }}</option>
         {% endfor %}

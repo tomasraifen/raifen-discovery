@@ -102,25 +102,29 @@
       <form method="post" action="/admin/sembrar"><button class="btn" type="submit">Sembrar participantes</button></form>
     {% else %}
       <table>
-        <tr><th>Nombre</th><th>Cargo</th><th>Formulario</th><th>Estado</th><th>Progreso</th><th></th></tr>
+        <tr><th>Nombre</th><th>Cargo</th><th>Correo</th><th>Formulario</th><th>Estado</th><th>Progreso</th><th></th></tr>
         {% for p in participantes %}
         <tr>
           <td>{{ p.nombre }}</td>
           <td>{{ p.cargo or "—" }}</td>
-          <td><span class="muted">{{ p.formulario_nombre }}</span></td>
+          <td class="muted">{{ p.email or "—" }}</td>
+          <td><span class="muted">{{ p.formulario_nombre or "— sin asignar —" }}</span></td>
           <td><span class="pill {{ p.estado }}">{{ p.estado }}</span></td>
           <td style="width:140px;">
             <div class="progreso-barra"><div style="width: {{ (p.progreso.cubiertos / p.progreso.total * 100) if p.progreso.total else 0 }}%;"></div></div>
             <span class="muted">{{ p.progreso.cubiertos }}/{{ p.progreso.total }}</span>
           </td>
           <td style="white-space:nowrap;">
-            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}/panel" target="_blank" rel="noopener">Ver como participante ↗</a>
+            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}/panel" target="_blank" rel="noopener">panel ↗</a>
+            {% if p.formulario_id_resuelto %}
+            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;margin-left:4px;" href="{{ p.link }}" target="_blank" rel="noopener">formulario ↗</a>
+            {% endif %}
             <a href="/admin/participantes/{{ p.id }}" style="margin-left:8px;">respuestas →</a>
           </td>
         </tr>
         {% endfor %}
       </table>
-      <p class="muted" style="margin-top:10px;">"Ver como participante" abre su panel general tal cual lo ve esa persona (desde ahí tiene un botón a su formulario) — sin login de admin, la seguridad es el link personal.</p>
+      <p class="muted" style="margin-top:10px;">"panel" abre su panel general tal cual lo ve esa persona; "formulario" va directo a lo que tiene asignado — sin login de admin, la seguridad es el link personal.</p>
     {% endif %}
 
     <details style="margin-top:16px;">
@@ -132,6 +136,7 @@
         <div>
           <label class="muted" style="display:block;font-size:12px;">Formulario</label>
           <select name="formulario_id">
+            <option value="">— Sin formulario, solo stakeholder —</option>
             {% for formulario in formularios %}
             <option value="{{ formulario.id }}">{{ formulario.nombre }}</option>
             {% endfor %}
@@ -171,9 +176,29 @@
         {% endfor %}
       </table>
     {% endif %}
-    <form method="post" action="/admin/aprobacion/enviar" style="margin-top:16px;">
-      <button class="btn violeta" type="submit">Enviar documento para revisión interna</button>
-      <p class="muted" style="margin:6px 0 0;">Solo incluye las reglas marcadas como "confirmada" o posteriores. Se envía a <b>{{ admin_review_email }}</b> vía Google Doc con formato Raifen — nunca directo al cliente. El destinatario final ({{ proyecto.correo_aprobacion }}) queda anotado dentro del documento como referencia, para reenviar a mano después de revisarlo.</p>
-    </form>
+    <div style="margin-top:16px;">
+      <button type="button" class="btn violeta" onclick="abrirModal('modal-enviar')">📤 Enviar documento para revisión</button>
+      <p class="muted" style="margin:6px 0 0;">Elegí qué secciones incluir y a quién se lo mandás — el destinatario final del cliente ({{ proyecto.correo_aprobacion }}) nunca lo recibe directo, queda solo anotado como referencia dentro del documento.</p>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-enviar">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-enviar')">✕</button>
+      <h2>Armar documento de revisión</h2>
+      <form method="post" action="/admin/aprobacion/enviar">
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Enviar a</label>
+        <input type="email" name="correo" value="{{ admin_review_email }}" style="width:100%;margin-bottom:16px;" required>
+
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:6px;">Secciones a incluir</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_lo_que_sabemos" checked> Lo que ya sabemos del negocio</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_stakeholders" checked> Stakeholders (nombre, cargo, correo, formulario, estado)</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_progreso" checked> Progreso de respuestas por área</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_reglas" checked> Reglas de negocio confirmadas</label>
+        </div>
+        <button class="btn violeta" type="submit">Enviar</button>
+      </form>
+    </div>
   </div>
 {% endblock %}

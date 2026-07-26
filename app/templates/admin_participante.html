@@ -9,8 +9,9 @@
     <form method="post" action="/admin/participantes/{{ p.id }}/formulario" style="margin-top:10px;display:flex;gap:6px;align-items:center;">
       <label class="muted" style="font-size:12.5px;">Formulario asignado (por default, al abrir su link sin elegir uno):</label>
       <select name="formulario_id" onchange="this.form.submit()">
+        <option value="" {% if not formulario %}selected{% endif %}>— Sin formulario, solo stakeholder —</option>
         {% for f in formularios %}
-        <option value="{{ f.id }}" {% if f.id == formulario.id %}selected{% endif %}>{{ f.nombre }}</option>
+        <option value="{{ f.id }}" {% if formulario and f.id == formulario.id %}selected{% endif %}>{{ f.nombre }}</option>
         {% endfor %}
       </select>
       <noscript><button class="btn secundario" style="padding:5px 10px;font-size:12.5px;" type="submit">Reasignar</button></noscript>
@@ -21,6 +22,15 @@
   <div class="card" style="background:#fffbeb;border-color:#fde68a;">
     <h2 style="margin-top:0;">Correcciones a "lo que ya sabemos"</h2>
     <p style="margin:0;">{{ p.correcciones_ya_sabemos }}</p>
+  </div>
+  {% endif %}
+
+  {% if not temas %}
+  <div class="card">
+    <p class="muted" style="margin:0;">
+      {% if not formulario %}Este participante no tiene un formulario asignado todavía — es solo un stakeholder del proyecto.
+      {% else %}El formulario "{{ formulario.nombre }}" todavía no tiene preguntas cargadas.{% endif %}
+    </p>
   </div>
   {% endif %}
 
