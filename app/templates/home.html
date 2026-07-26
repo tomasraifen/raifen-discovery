@@ -48,11 +48,12 @@
       <form method="post" action="/admin/sembrar"><button class="btn" type="submit">Sembrar participantes</button></form>
     {% else %}
       <table>
-        <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th>Progreso</th><th></th></tr>
+        <tr><th>Nombre</th><th>Cargo</th><th>Formulario</th><th>Estado</th><th>Progreso</th><th></th></tr>
         {% for p in participantes %}
         <tr>
           <td>{{ p.nombre }}</td>
           <td>{{ p.cargo or "—" }}</td>
+          <td><span class="muted">{{ p.formulario_nombre }}</span></td>
           <td><span class="pill {{ p.estado }}">{{ p.estado }}</span></td>
           <td style="width:140px;">
             <div class="progreso-barra"><div style="width: {{ (p.progreso.cubiertos / p.progreso.total * 100) if p.progreso.total else 0 }}%;"></div></div>
@@ -74,6 +75,14 @@
         <div><label class="muted" style="display:block;font-size:12px;">Nombre</label><input type="text" name="nombre" required></div>
         <div><label class="muted" style="display:block;font-size:12px;">Cargo</label><input type="text" name="cargo"></div>
         <div><label class="muted" style="display:block;font-size:12px;">Correo</label><input type="email" name="email"></div>
+        <div>
+          <label class="muted" style="display:block;font-size:12px;">Formulario</label>
+          <select name="formulario_id">
+            {% for formulario in formularios %}
+            <option value="{{ formulario.id }}">{{ formulario.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <button class="btn secundario" type="submit">Agregar</button>
       </form>
     </details>

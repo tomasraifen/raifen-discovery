@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS participantes (
     estado TEXT NOT NULL DEFAULT 'pendiente',
     respuestas_json TEXT NOT NULL DEFAULT '{}',
     correcciones_ya_sabemos TEXT,
-    completado_en TEXT
+    completado_en TEXT,
+    formulario_id TEXT NOT NULL DEFAULT 'principal'
 );
 
 CREATE TABLE IF NOT EXISTS adjuntos (
@@ -56,6 +57,10 @@ CREATE TABLE IF NOT EXISTS aprobaciones (
 # participante hizo click en "Finalizar", no implica que respondio todo -- puede volver
 # a editar despues, no queda bloqueado).
 
+_MIGRACIONES = [
+    "ALTER TABLE participantes ADD COLUMN formulario_id TEXT NOT NULL DEFAULT 'principal'",
+]
+
 
 def _conn():
     conn = sqlite3.connect(settings.DB_PATH)
@@ -66,6 +71,11 @@ def _conn():
 def init_db():
     with _conn() as c:
         c.executescript(SCHEMA)
+        for stmt in _MIGRACIONES:
+            try:
+                c.execute(stmt)
+            except sqlite3.OperationalError:
+                pass  # la columna ya existe -- tabla creada antes de este cambio
 
 
 def sembrar_participantes(participantes: list[dict]) -> list[dict]:
@@ -80,9 +90,12 @@ def sembrar_participantes(participantes: list[dict]) -> list[dict]:
             pid = str(uuid.uuid4())
             token = secrets.token_urlsafe(28)
             c.execute(
-                "INSERT INTO participantes (id, token, nombre, cargo, email, creado_en, estado) "
-                "VALUES (?, ?, ?, ?, ?, ?, 'pendiente')",
-                (pid, token, p["nombre"], p.get("cargo", ""), p.get("email", ""), datetime.now(timezone.utc).isoformat()),
+                "INSERT INTO participantes (id, token, nombre, cargo, email, creado_en, estado, formulario_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)",
+                (
+                    pid, token, p["nombre"], p.get("cargo", ""), p.get("email", ""),
+                    datetime.now(timezone.utc).isoformat(), p.get("formulario_id", "principal"),
+                ),
             )
             creados.append({"id": pid, "token": token, **p})
     return creados
@@ -91,9 +104,15 @@ def sembrar_participantes(participantes: list[dict]) -> list[dict]:
 def listar_participantes() -> list[dict]:
     with _conn() as c:
         rows = c.execute(
-            "SELECT id, token, nombre, cargo, email, estado, respuestas_json, completado_en FROM participantes ORDER BY creado_en"
+            "SELECT id, token, nombre, cargo, email, estado, respuestas_json, completado_en, formulario_id "
+            "FROM participantes ORDER BY creado_en"
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def actualizar_formulario_participante(pid: str, formulario_id: str):
+    with _conn() as c:
+        c.execute("UPDATE participantes SET formulario_id = ? WHERE id = ?", (formulario_id, pid))
 
 
 def obtener(pid: str) -> dict | None:
@@ -217,16 +236,20 @@ def progreso(p: dict, total_preguntas: int) -> dict:
 
 
 def resumen_por_tema(proyecto: dict, participantes: list[dict]) -> list[dict]:
-    """Vista de panel de control: por cada tema, cuantas preguntas del total ya tienen
-    al menos una respuesta guardada (de cualquier participante) -- responde "que areas
+    """Vista de panel de control: por cada tema (de cualquier formulario), cuantas
+    preguntas del total ya tienen al menos una respuesta guardada -- responde "que areas
     ya se saben algo y cuales siguen en blanco"."""
     resumen = []
     ids_respondidos = set()
     for p in participantes:
         p_completo = obtener(p["id"])
         ids_respondidos |= set(get_respuestas(p_completo).keys())
-    for tema in proyecto.get("temas", []):
-        preguntas = tema.get("preguntas", [])
-        cubiertas = sum(1 for pr in preguntas if pr["id"] in ids_respondidos)
-        resumen.append({"titulo": tema["titulo"], "cubiertas": cubiertas, "total": len(preguntas)})
+    formularios = proyecto.get("formularios", [])
+    multi = len(formularios) > 1
+    for formulario in formularios:
+        for tema in formulario.get("temas", []):
+            preguntas = tema.get("preguntas", [])
+            cubiertas = sum(1 for pr in preguntas if pr["id"] in ids_respondidos)
+            titulo = f"{tema['titulo']} — {formulario['nombre']}" if multi else tema["titulo"]
+            resumen.append({"titulo": titulo, "cubiertas": cubiertas, "total": len(preguntas)})
     return resumen

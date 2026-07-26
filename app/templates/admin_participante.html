@@ -6,6 +6,15 @@
     <h1 style="margin:0 0 4px;">{{ p.nombre }}</h1>
     <p class="muted" style="margin:0;">{{ p.cargo or "—" }} · {{ p.email or "sin email" }} · <span class="pill {{ p.estado }}">{{ p.estado }}</span></p>
     <p class="muted">Link personal: <a href="{{ link }}" target="_blank">{{ link }}</a></p>
+    <form method="post" action="/admin/participantes/{{ p.id }}/formulario" style="margin-top:10px;display:flex;gap:6px;align-items:center;">
+      <label class="muted" style="font-size:12.5px;">Formulario asignado:</label>
+      <select name="formulario_id">
+        {% for f in formularios %}
+        <option value="{{ f.id }}" {% if f.id == formulario.id %}selected{% endif %}>{{ f.nombre }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn secundario" style="padding:5px 10px;font-size:12.5px;" type="submit">Reasignar</button>
+    </form>
   </div>
 
   {% if p.correcciones_ya_sabemos %}

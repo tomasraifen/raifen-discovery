@@ -43,6 +43,25 @@ ADMIN_REVIEW_EMAIL = os.getenv("ADMIN_REVIEW_EMAIL", "tomas@raifen.ai")
 
 CONFIG_DIR = ROOT / "config"
 
+DEFAULT_FORMULARIO_ID = "principal"
+
+
+def _normalizar_formularios(proyecto: dict) -> dict:
+    """Migra el schema viejo (temas sueltos a nivel raiz -- un solo formulario
+    implicito) al nuevo (proyecto["formularios"] = lista de {id, nombre, temas}).
+    Mutacion in-place, idempotente, no persiste sola -- el llamador decide cuando
+    guardar. Necesario para no romper instancias ya desplegadas con el schema viejo
+    (ver config/proyecto.yaml de discovery.raifen.ai, pegado a mano antes de este
+    cambio)."""
+    if "formularios" not in proyecto:
+        temas_legacy = proyecto.pop("temas", [])
+        proyecto["formularios"] = [
+            {"id": DEFAULT_FORMULARIO_ID, "nombre": "Formulario principal", "temas": temas_legacy}
+        ]
+    for p in proyecto.get("participantes", []):
+        p.setdefault("formulario_id", DEFAULT_FORMULARIO_ID)
+    return proyecto
+
 
 def load_proyecto() -> dict:
     path = CONFIG_DIR / "proyecto.yaml"
@@ -51,16 +70,28 @@ def load_proyecto() -> dict:
             "Falta config/proyecto.yaml -- copiar config/proyecto.example.yaml y completar con los datos del cliente."
         )
     with open(path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        proyecto = yaml.safe_load(f)
+    return _normalizar_formularios(proyecto)
 
 
-def preguntas_planas(proyecto: dict) -> list[dict]:
-    """Todas las preguntas de todos los temas, en una sola lista -- para calcular
-    progreso total y para validar ids al guardar una respuesta."""
+def formulario_por_id(proyecto: dict, formulario_id: str) -> dict | None:
+    for f in proyecto.get("formularios", []):
+        if f["id"] == formulario_id:
+            return f
+    return None
+
+
+def preguntas_planas(proyecto: dict, formulario_id: str | None = None) -> list[dict]:
+    """Todas las preguntas -- de un formulario puntual, o de todos si no se filtra.
+    Usado para calcular progreso total y para validar ids al guardar una respuesta."""
     planas = []
-    for tema in proyecto.get("temas", []):
-        for p in tema.get("preguntas", []):
-            planas.append({**p, "tema_id": tema["id"], "tema_titulo": tema["titulo"]})
+    formularios = proyecto.get("formularios", [])
+    if formulario_id:
+        formularios = [f for f in formularios if f["id"] == formulario_id]
+    for formulario in formularios:
+        for tema in formulario.get("temas", []):
+            for p in tema.get("preguntas", []):
+                planas.append({**p, "tema_id": tema["id"], "tema_titulo": tema["titulo"], "formulario_id": formulario["id"]})
     return planas
 
 
@@ -72,32 +103,52 @@ def _slug(texto: str) -> str:
 
 
 def guardar_proyecto(proyecto: dict):
-    """Escribe config/proyecto.yaml de vuelta -- lo usa el editor de preguntas/temas/
-    participantes del panel admin. El archivo es un bind mount con permiso de escritura
-    (ver docker-compose.yml), así que esto persiste tanto local como en Coolify."""
+    """Escribe config/proyecto.yaml de vuelta -- lo usa el editor de formularios/temas/
+    preguntas/participantes del panel admin. El archivo es un bind mount con permiso de
+    escritura (ver docker-compose.yml), así que esto persiste tanto local como en
+    Coolify."""
     path = CONFIG_DIR / "proyecto.yaml"
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(proyecto, f, allow_unicode=True, sort_keys=False, width=1000)
 
 
-def agregar_tema(proyecto: dict, titulo: str) -> dict:
+def agregar_formulario(proyecto: dict, nombre: str) -> dict:
+    formulario_id = _slug(nombre)
+    ids_existentes = {f["id"] for f in proyecto.setdefault("formularios", [])}
+    sufijo = 2
+    formulario_id_final = formulario_id
+    while formulario_id_final in ids_existentes:
+        formulario_id_final = f"{formulario_id}_{sufijo}"
+        sufijo += 1
+    proyecto["formularios"].append({"id": formulario_id_final, "nombre": nombre, "temas": []})
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def agregar_tema(proyecto: dict, formulario_id: str, titulo: str) -> dict:
+    formulario = formulario_por_id(proyecto, formulario_id)
+    if not formulario:
+        raise ValueError(f"formulario '{formulario_id}' no existe")
     tema_id = _slug(titulo)
-    ids_existentes = {t["id"] for t in proyecto.setdefault("temas", [])}
+    ids_existentes = {t["id"] for t in formulario.setdefault("temas", [])}
     sufijo = 2
     tema_id_final = tema_id
     while tema_id_final in ids_existentes:
         tema_id_final = f"{tema_id}_{sufijo}"
         sufijo += 1
-    proyecto["temas"].append({"id": tema_id_final, "titulo": titulo, "preguntas": []})
+    formulario["temas"].append({"id": tema_id_final, "titulo": titulo, "preguntas": []})
     guardar_proyecto(proyecto)
     return proyecto
 
 
 def agregar_pregunta(
-    proyecto: dict, tema_id: str, texto: str, tipo: str,
+    proyecto: dict, formulario_id: str, tema_id: str, texto: str, tipo: str,
     opciones: list[str] | None = None, ayuda: str | None = None,
 ) -> dict:
-    for tema in proyecto.get("temas", []):
+    formulario = formulario_por_id(proyecto, formulario_id)
+    if not formulario:
+        raise ValueError(f"formulario '{formulario_id}' no existe")
+    for tema in formulario.get("temas", []):
         if tema["id"] == tema_id:
             pregunta_id = _slug(texto)
             ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
@@ -114,22 +165,28 @@ def agregar_pregunta(
             tema["preguntas"].append(nueva)
             break
     else:
-        raise ValueError(f"tema '{tema_id}' no existe")
+        raise ValueError(f"tema '{tema_id}' no existe en el formulario '{formulario_id}'")
     guardar_proyecto(proyecto)
     return proyecto
 
 
-def eliminar_pregunta(proyecto: dict, tema_id: str, pregunta_id: str) -> dict:
-    for tema in proyecto.get("temas", []):
-        if tema["id"] == tema_id:
-            tema["preguntas"] = [p for p in tema.get("preguntas", []) if p["id"] != pregunta_id]
-            break
+def eliminar_pregunta(proyecto: dict, formulario_id: str, tema_id: str, pregunta_id: str) -> dict:
+    formulario = formulario_por_id(proyecto, formulario_id)
+    if formulario:
+        for tema in formulario.get("temas", []):
+            if tema["id"] == tema_id:
+                tema["preguntas"] = [p for p in tema.get("preguntas", []) if p["id"] != pregunta_id]
+                break
     guardar_proyecto(proyecto)
     return proyecto
 
 
-def agregar_participante_a_yaml(proyecto: dict, nombre: str, cargo: str, email: str) -> dict:
-    proyecto.setdefault("participantes", []).append({"nombre": nombre, "cargo": cargo, "email": email})
+def agregar_participante_a_yaml(
+    proyecto: dict, nombre: str, cargo: str, email: str, formulario_id: str = DEFAULT_FORMULARIO_ID
+) -> dict:
+    proyecto.setdefault("participantes", []).append(
+        {"nombre": nombre, "cargo": cargo, "email": email, "formulario_id": formulario_id}
+    )
     guardar_proyecto(proyecto)
     return proyecto
 

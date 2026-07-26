@@ -1,12 +1,13 @@
 """Raifen Discovery -- FastAPI.
 
 Flujo: Catequil siembra los participantes del proyecto (config/proyecto.yaml) -> cada
-uno recibe su link /r/<token> -> completa un formulario tipado (texto libre / opción
-única / opción múltiple / booleano -- sin IA, cada pregunta es un campo real) a su
-propio ritmo, con opción de grabar audio para las preguntas de texto libre o adjuntar
-archivos -> Catequil hace la curaduría (marca reglas de negocio confirmadas a partir de
-las respuestas) -> se envía el documento formal de aprobación al cliente vía el webhook
-markdown-raifen."""
+uno recibe su link /r/<token>, asignado a UN formulario del proyecto (un proyecto puede
+tener varios formularios -- ej. uno por area/rol) -> completa un formulario tipado
+(texto libre / opción única / opción múltiple / booleano -- sin IA, cada pregunta es un
+campo real) a su propio ritmo, con opción de grabar audio para las preguntas de texto
+libre o adjuntar archivos -> Catequil hace la curaduría (marca reglas de negocio
+confirmadas a partir de las respuestas) -> se envía el documento formal de aprobación
+para revisión interna vía el webhook markdown-raifen."""
 import uuid
 from pathlib import Path
 
@@ -42,21 +43,30 @@ def _pregunta_por_id(proyecto: dict, pregunta_id: str) -> dict | None:
     return None
 
 
+def _formulario_de(proyecto: dict, p: dict) -> dict:
+    formulario = settings.formulario_por_id(proyecto, p.get("formulario_id") or settings.DEFAULT_FORMULARIO_ID)
+    return formulario or proyecto["formularios"][0]
+
+
 # ---------- Admin ----------
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     proyecto = _proyecto()
-    total_preguntas = len(settings.preguntas_planas(proyecto))
     participantes = store.listar_participantes()
     for p in participantes:
-        p["progreso"] = store.progreso(p, total_preguntas)
+        formulario = _formulario_de(proyecto, p)
+        p["formulario_nombre"] = formulario["nombre"]
+        p["progreso"] = store.progreso(p, len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"])))
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     reglas = store.listar_reglas()
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     return templates.TemplateResponse(
         request, "home.html",
-        {"proyecto": proyecto, "participantes": participantes, "reglas": reglas, "resumen_temas": resumen_temas},
+        {
+            "proyecto": proyecto, "participantes": participantes, "reglas": reglas,
+            "resumen_temas": resumen_temas, "formularios": proyecto.get("formularios", []),
+        },
     )
 
 
@@ -75,20 +85,30 @@ async def actualizar_lo_que_sabemos(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
-# ---------- Editor de banco de preguntas y participantes ----------
+# ---------- Editor de formularios, temas, preguntas y participantes ----------
 
-@app.post("/admin/temas")
-async def crear_tema(request: Request):
+@app.post("/admin/formularios")
+async def crear_formulario(request: Request):
+    form = await request.form()
+    nombre = (form.get("nombre") or "").strip()
+    if not nombre:
+        raise HTTPException(400, "falta el nombre del formulario")
+    settings.agregar_formulario(_proyecto(), nombre)
+    return RedirectResponse(url="/admin/editor", status_code=303)
+
+
+@app.post("/admin/formularios/{formulario_id}/temas")
+async def crear_tema(request: Request, formulario_id: str):
     form = await request.form()
     titulo = (form.get("titulo") or "").strip()
     if not titulo:
         raise HTTPException(400, "falta el título del tema")
-    settings.agregar_tema(_proyecto(), titulo)
+    settings.agregar_tema(_proyecto(), formulario_id, titulo)
     return RedirectResponse(url="/admin/editor", status_code=303)
 
 
-@app.post("/admin/temas/{tema_id}/preguntas")
-async def crear_pregunta(request: Request, tema_id: str):
+@app.post("/admin/formularios/{formulario_id}/temas/{tema_id}/preguntas")
+async def crear_pregunta(request: Request, formulario_id: str, tema_id: str):
     form = await request.form()
     texto = (form.get("texto") or "").strip()
     tipo = (form.get("tipo") or "").strip()
@@ -99,13 +119,13 @@ async def crear_pregunta(request: Request, tema_id: str):
     if tipo in ("opcion_unica", "opcion_multiple") and not opciones:
         raise HTTPException(400, "este tipo de pregunta necesita al menos una opción")
     ayuda = (form.get("ayuda") or "").strip() or None
-    settings.agregar_pregunta(_proyecto(), tema_id, texto, tipo, opciones, ayuda)
+    settings.agregar_pregunta(_proyecto(), formulario_id, tema_id, texto, tipo, opciones, ayuda)
     return RedirectResponse(url="/admin/editor", status_code=303)
 
 
-@app.post("/admin/temas/{tema_id}/preguntas/{pregunta_id}/eliminar")
-def eliminar_pregunta(tema_id: str, pregunta_id: str):
-    settings.eliminar_pregunta(_proyecto(), tema_id, pregunta_id)
+@app.post("/admin/formularios/{formulario_id}/temas/{tema_id}/preguntas/{pregunta_id}/eliminar")
+def eliminar_pregunta(formulario_id: str, tema_id: str, pregunta_id: str):
+    settings.eliminar_pregunta(_proyecto(), formulario_id, tema_id, pregunta_id)
     return RedirectResponse(url="/admin/editor", status_code=303)
 
 
@@ -115,11 +135,22 @@ async def crear_participante(request: Request):
     nombre = (form.get("nombre") or "").strip()
     cargo = (form.get("cargo") or "").strip()
     email = (form.get("email") or "").strip()
+    formulario_id = (form.get("formulario_id") or "").strip() or settings.DEFAULT_FORMULARIO_ID
     if not nombre:
         raise HTTPException(400, "falta el nombre del participante")
-    settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email)
-    store.sembrar_participantes([{"nombre": nombre, "cargo": cargo, "email": email}])
+    settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email, formulario_id)
+    store.sembrar_participantes([{"nombre": nombre, "cargo": cargo, "email": email, "formulario_id": formulario_id}])
     return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/admin/participantes/{pid}/formulario")
+async def reasignar_formulario(request: Request, pid: str):
+    form = await request.form()
+    formulario_id = (form.get("formulario_id") or "").strip()
+    if not formulario_id:
+        raise HTTPException(400, "falta el formulario")
+    store.actualizar_formulario_participante(pid, formulario_id)
+    return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
 
 
 @app.get("/admin/api/respuestas")
@@ -135,13 +166,14 @@ def api_respuestas():
         completo = store.obtener(p["id"])
         data.append({
             "id": p["id"], "nombre": p["nombre"], "cargo": p["cargo"], "email": p["email"],
-            "estado": p["estado"], "correcciones_ya_sabemos": completo.get("correcciones_ya_sabemos"),
+            "estado": p["estado"], "formulario_id": p["formulario_id"],
+            "correcciones_ya_sabemos": completo.get("correcciones_ya_sabemos"),
             "respuestas": store.get_respuestas(completo),
         })
     return JSONResponse({
         "proyecto": {"cliente": proyecto["cliente"], "proyecto": proyecto.get("proyecto"), "vertical": proyecto.get("vertical")},
         "lo_que_ya_sabemos": proyecto.get("lo_que_ya_sabemos"),
-        "temas": proyecto.get("temas", []),
+        "formularios": proyecto.get("formularios", []),
         "participantes": data,
         "reglas_negocio": store.listar_reglas(),
     })
@@ -152,7 +184,7 @@ def editor(request: Request):
     proyecto = _proyecto()
     return templates.TemplateResponse(
         request, "editor.html",
-        {"proyecto": proyecto, "temas": proyecto.get("temas", [])},
+        {"proyecto": proyecto, "formularios": proyecto.get("formularios", [])},
     )
 
 
@@ -162,6 +194,7 @@ def ver_participante(request: Request, pid: str):
     if not p:
         raise HTTPException(404, "participante no encontrado")
     proyecto = _proyecto()
+    formulario = _formulario_de(proyecto, p)
     respuestas = store.get_respuestas(p)
     adjuntos = store.listar_adjuntos(pid)
     link = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
@@ -169,7 +202,8 @@ def ver_participante(request: Request, pid: str):
         request, "admin_participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas, "adjuntos": adjuntos, "link": link,
-            "temas": proyecto.get("temas", []),
+            "temas": formulario.get("temas", []), "formulario": formulario,
+            "formularios": proyecto.get("formularios", []),
         },
     )
 
@@ -246,14 +280,15 @@ def relevar(request: Request, token: str):
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
+    formulario = _formulario_de(proyecto, p)
     respuestas = store.get_respuestas(p)
-    total_preguntas = len(settings.preguntas_planas(proyecto))
+    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"]))
     return templates.TemplateResponse(
         request, "participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas,
             "progreso": store.progreso(p, total_preguntas),
-            "temas": proyecto.get("temas", []),
+            "temas": formulario.get("temas", []), "formulario": formulario,
         },
     )
 
@@ -264,6 +299,7 @@ async def guardar_respuesta(request: Request, token: str):
     if not p:
         raise HTTPException(404, "link inválido")
     proyecto = _proyecto()
+    formulario = _formulario_de(proyecto, p)
     body = await request.json()
     pregunta_id = body.get("pregunta_id")
     valor = body.get("valor")
@@ -272,7 +308,7 @@ async def guardar_respuesta(request: Request, token: str):
         raise HTTPException(400, "pregunta inválida")
     store.guardar_respuesta(p["id"], pregunta_id, valor, fuente=body.get("fuente", "texto"))
     p_actualizado = store.obtener(p["id"])
-    total_preguntas = len(settings.preguntas_planas(proyecto))
+    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"]))
     return JSONResponse({"ok": True, "progreso": store.progreso(p_actualizado, total_preguntas)})
 
 
@@ -315,10 +351,11 @@ def panel_participante(request: Request, token: str):
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
-    total_preguntas = len(settings.preguntas_planas(proyecto))
     participantes = store.listar_participantes()
     for part in participantes:
-        part["progreso"] = store.progreso(part, total_preguntas)
+        formulario_part = _formulario_de(proyecto, part)
+        part["progreso"] = store.progreso(part, len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])))
+        part["formulario_nombre"] = formulario_part["nombre"]
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     return templates.TemplateResponse(
         request, "panel_participante.html",

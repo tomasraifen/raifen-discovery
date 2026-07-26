@@ -9,6 +9,10 @@
 # Sin IA en el flujo: cada pregunta tiene un tipo fijo y se renderiza como campo de
 # formulario real. tipo: texto_libre | opcion_unica | opcion_multiple | booleano
 # (opcion_unica/opcion_multiple requieren "opciones").
+#
+# Un proyecto puede tener VARIOS formularios (ej. uno por area/rol) -- cada participante
+# se asigna a uno solo via su "formulario_id". Si el proyecto es chico, un solo
+# formulario ("principal") alcanza y todos comparten el mismo banco de preguntas.
 
 cliente: "Nombre Cliente"
 proyecto: "Datalake <Cliente>"
@@ -22,67 +26,68 @@ correo_aprobacion: "contacto@cliente.com"  # a quien se le manda el documento fo
 lo_que_ya_sabemos: |
   [Texto libre. Vacio si todavia no hay contexto previo real -- no se inventa.]
 
-# Banco de preguntas efectivo para este proyecto: generico + especifico de vertical, ya
-# fusionado y priorizado por Catequil (no todas las preguntas del banco generico aplican
-# igual a todos los clientes). Agrupadas por tema para que el formulario se muestre por
-# secciones con su propia barra de progreso.
-temas:
-  - id: contexto_negocio
-    titulo: "Contexto de negocio"
-    preguntas:
-      - id: que_hace
-        texto: "En sus palabras, ¿qué hace la empresa y cómo genera ingresos hoy?"
-        tipo: texto_libre
-      - id: prioridad_estrategica
-        texto: "¿Cuál es la prioridad estratégica del negocio en este momento?"
-        tipo: texto_libre
+formularios:
+  - id: principal
+    nombre: "Formulario principal"
+    temas:
+      - id: contexto_negocio
+        titulo: "Contexto de negocio"
+        preguntas:
+          - id: que_hace
+            texto: "En sus palabras, ¿qué hace la empresa y cómo genera ingresos hoy?"
+            tipo: texto_libre
+          - id: prioridad_estrategica
+            texto: "¿Cuál es la prioridad estratégica del negocio en este momento?"
+            tipo: texto_libre
 
-  - id: procesos
-    titulo: "Procesos y sistemas"
-    preguntas:
-      - id: procesos_clave
-        texto: "¿Cuáles son los 2-3 procesos que más les interesa visibilizar o mejorar con datos?"
-        tipo: texto_libre
-      - id: sistemas_actuales
-        texto: "¿Qué sistemas usan hoy?"
-        tipo: opcion_multiple
-        opciones: ["ERP", "CRM", "Planillas Excel", "Sistema propio", "Ninguno formal", "Otro"]
-      - id: sistemas_integrados
-        texto: "¿Esos sistemas se hablan entre sí, o hay carga manual/duplicada?"
-        tipo: opcion_unica
-        opciones: ["Totalmente integrados", "Parcialmente integrados", "Muy fragmentados / carga manual"]
+      - id: procesos
+        titulo: "Procesos y sistemas"
+        preguntas:
+          - id: procesos_clave
+            texto: "¿Cuáles son los 2-3 procesos que más les interesa visibilizar o mejorar con datos?"
+            tipo: texto_libre
+          - id: sistemas_actuales
+            texto: "¿Qué sistemas usan hoy?"
+            tipo: opcion_multiple
+            opciones: ["ERP", "CRM", "Planillas Excel", "Sistema propio", "Ninguno formal", "Otro"]
+          - id: sistemas_integrados
+            texto: "¿Esos sistemas se hablan entre sí, o hay carga manual/duplicada?"
+            tipo: opcion_unica
+            opciones: ["Totalmente integrados", "Parcialmente integrados", "Muy fragmentados / carga manual"]
 
-  - id: metricas
-    titulo: "Métricas y dolor"
-    preguntas:
-      - id: kpis_actuales
-        texto: "¿Qué miden hoy y quién consume esos reportes?"
-        tipo: texto_libre
-      - id: confianza_numeros
-        texto: "¿Confían en esos números tal como están hoy?"
-        tipo: booleano
-      - id: dolor_principal
-        texto: "¿Qué decisión no pueden tomar hoy por falta de datos o visibilidad?"
-        tipo: texto_libre
+      - id: metricas
+        titulo: "Métricas y dolor"
+        preguntas:
+          - id: kpis_actuales
+            texto: "¿Qué miden hoy y quién consume esos reportes?"
+            tipo: texto_libre
+          - id: confianza_numeros
+            texto: "¿Confían en esos números tal como están hoy?"
+            tipo: booleano
+          - id: dolor_principal
+            texto: "¿Qué decisión no pueden tomar hoy por falta de datos o visibilidad?"
+            tipo: texto_libre
 
-  - id: reglas_negocio
-    titulo: "Cómo funcionan las cosas en la práctica"
-    preguntas:
-      - id: definicion_evento_clave
-        texto: "¿Cuándo se considera que [ej. una venta] quedó cerrada de verdad? ¿Hay casos raros o excepciones a esa regla?"
-        ayuda: "Buscamos la definición real que usa el equipo día a día, no la del manual — por ejemplo: ¿cuenta como venta cuando se factura, cuando se cobra, o cuando se entrega? ¿Qué pasa con una devolución?"
-        tipo: texto_libre
-      - id: reglas_variables
-        texto: "¿Esa definición cambia según el canal, la región, el tipo de cliente o la época del año?"
-        ayuda: "Ej: capaz una venta online se cierra distinto que una venta en tienda física."
-        tipo: booleano
-      - id: gobernanza
-        texto: "Si alguien quiere cambiar cómo se mide algo (ej. qué cuenta como cliente activo), ¿quién tiene que aprobarlo?"
-        tipo: texto_libre
+      - id: reglas_negocio
+        titulo: "Cómo funcionan las cosas en la práctica"
+        preguntas:
+          - id: definicion_evento_clave
+            texto: "¿Cuándo se considera que [ej. una venta] quedó cerrada de verdad? ¿Hay casos raros o excepciones a esa regla?"
+            ayuda: "Buscamos la definición real que usa el equipo día a día, no la del manual — por ejemplo: ¿cuenta como venta cuando se factura, cuando se cobra, o cuando se entrega? ¿Qué pasa con una devolución?"
+            tipo: texto_libre
+          - id: reglas_variables
+            texto: "¿Esa definición cambia según el canal, la región, el tipo de cliente o la época del año?"
+            ayuda: "Ej: capaz una venta online se cierra distinto que una venta en tienda física."
+            tipo: booleano
+          - id: gobernanza
+            texto: "Si alguien quiere cambiar cómo se mide algo (ej. qué cuenta como cliente activo), ¿quién tiene que aprobarlo?"
+            tipo: texto_libre
 
 # Cada persona del cliente que va a completar su propio modulo. token se genera al
-# inicializar la DB (ver cli.py) -- no se pisa a mano.
+# inicializar la DB (ver cli.py) -- no se pisa a mano. formulario_id referencia el id de
+# uno de los formularios de arriba (default "principal" si se omite).
 participantes:
   - nombre: "Nombre Apellido"
     cargo: "Cargo"
     email: "persona@cliente.com"
+    formulario_id: principal
