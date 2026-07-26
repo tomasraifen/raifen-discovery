@@ -71,7 +71,23 @@
     .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; width: 100%; }
     .progreso-barra > div { background: var(--cyan); height: 100%; }
     .muted { color: var(--muted); font-size: 13px; }
-    a.btn { display: inline-block; background: var(--mint); color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; }
+    .btn { display: inline-block; background: var(--mint); color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: none; cursor: pointer; font-family: var(--font-body); }
+    .btn.secundario { background: transparent; color: var(--mint); border: 1px solid var(--mint); }
+    .modal-fondo {
+      display: none; position: fixed; inset: 0; background: rgba(0,10,31,.6); z-index: 200;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-fondo.abierto { display: flex; }
+    .modal-caja {
+      background: var(--card); border-radius: 14px; padding: 28px; max-width: 640px; width: 100%;
+      max-height: 85vh; overflow-y: auto; position: relative;
+    }
+    .modal-caja .cerrar {
+      position: absolute; top: 14px; right: 14px; background: var(--card-inset); border: 1px solid var(--borde);
+      color: var(--texto); border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px;
+    }
+    .modal-caja h2 { margin-top: 0; }
+    .modal-caja ol, .modal-caja ul { padding-left: 20px; line-height: 1.7; }
   </style>
 </head>
 <body>
@@ -84,8 +100,11 @@
 </header>
 <div class="wrap">
   <div class="card">
-    <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
-    <p class="muted" style="margin:0 0 14px;">Así va el discovery del proyecto — quién ya respondió y qué áreas están cubiertas.</p>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ ¿Cómo funciona esto?</button>
+    </div>
+    <p class="muted" style="margin:0 0 14px;">Complete las preguntas de su formulario a su ritmo — se guardan solas, puede volver cuando quiera y grabar sus respuestas en voz si prefiere. Acá abajo ve el avance de todo el proyecto.</p>
     {% if proyecto.formularios | length > 1 %}
       <p class="muted" style="margin:0 0 8px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -166,6 +185,24 @@
   </div>
   {% endif %}
 </div>
+
+<div class="modal-fondo" id="modal-instrucciones">
+  <div class="modal-caja">
+    <button class="cerrar" onclick="cerrarModal('modal-instrucciones')">✕</button>
+    <h2>Cómo completar este formulario</h2>
+    <ol>
+      <li><b>¿Qué es esto?</b> Raifen está haciendo un relevamiento del negocio para el proyecto de datos — estas preguntas ayudan a entender cómo funciona todo hoy, en la práctica.</li>
+      <li><b>Se completa de a poco.</b> No hace falta terminarlo de una sola sentada — cada respuesta se guarda sola apenas se escribe, se puede cerrar la página y volver después con el mismo link.</li>
+      <li><b>Se puede hablar en vez de escribir.</b> Las preguntas de texto libre tienen un botón "🎙️ Grabar respuesta en voz" — se transcribe automáticamente y se puede corregir antes de guardar.</li>
+      <li><b>"Lo que ya sabemos"</b> es información que Raifen ya tiene del negocio (de conversaciones previas). Si algo ahí no es correcto o está desactualizado, se puede indicar en el campo de correcciones, justo debajo.</li>
+      <li><b>Al terminar</b>, el botón "Marcar formulario como finalizado" avisa que ya está listo — pero no bloquea nada, se puede seguir editando después si aparece algo más.</li>
+      {% if proyecto.formularios | length > 1 %}
+      <li><b>Este proyecto tiene más de un formulario.</b> Arriba de esta página hay un selector para pasar de uno a otro, por si corresponde completar más de uno.</li>
+      {% endif %}
+    </ol>
+  </div>
+</div>
+
 <script>
 (function () {
   const root = document.documentElement;
@@ -182,6 +219,8 @@
     actualizarIcono();
   });
 })();
+function abrirModal(id) { document.getElementById(id).classList.add("abierto"); }
+function cerrarModal(id) { document.getElementById(id).classList.remove("abierto"); }
 </script>
 </body>
 </html>

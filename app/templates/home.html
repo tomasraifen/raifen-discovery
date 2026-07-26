@@ -3,13 +3,25 @@
 {% block nav %}<a class="cta" href="/admin/editor">✎ Preguntas y temas</a>{% endblock %}
 {% block content %}
   <div class="card">
-    <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
-    <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
-    <div class="stepper">
-      <div class="paso"><b>1. Compartir</b>Copiar el link de cada participante y enviarlo (WhatsApp, correo).</div>
-      <div class="paso"><b>2. Esperar</b>Cada persona completa su formulario a su ritmo — el progreso se ve acá abajo.</div>
-      <div class="paso"><b>3. Curar</b>Con las respuestas, armar reglas de negocio abajo y confirmarlas.</div>
-      <div class="paso"><b>4. Revisar</b>El documento se manda a Raifen para revisión — nunca directo al cliente.</div>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div>
+        <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
+        <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
+      </div>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ Cómo funciona esto</button>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-instrucciones">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-instrucciones')">✕</button>
+      <h2>Cómo operar este proyecto</h2>
+      <div class="stepper">
+        <div class="paso"><b>1. Compartir</b>Copiar el link de cada participante y enviarlo (WhatsApp, correo).</div>
+        <div class="paso"><b>2. Esperar</b>Cada persona completa su formulario a su ritmo — el progreso se ve acá abajo.</div>
+        <div class="paso"><b>3. Curar</b>Con las respuestas, armar reglas de negocio abajo y confirmarlas.</div>
+        <div class="paso"><b>4. Revisar</b>El documento se manda a Raifen para revisión — nunca directo al cliente.</div>
+      </div>
     </div>
   </div>
 
