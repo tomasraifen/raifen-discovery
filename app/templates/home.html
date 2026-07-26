@@ -62,13 +62,13 @@
             <span class="muted">{{ p.progreso.cubiertos }}/{{ p.progreso.total }}</span>
           </td>
           <td style="white-space:nowrap;">
-            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}" target="_blank" rel="noopener">Ver como participante ↗</a>
+            <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}/panel" target="_blank" rel="noopener">Ver como participante ↗</a>
             <a href="/admin/participantes/{{ p.id }}" style="margin-left:8px;">respuestas →</a>
           </td>
         </tr>
         {% endfor %}
       </table>
-      <p class="muted" style="margin-top:10px;">"Ver como participante" abre el formulario tal cual lo ve esa persona — sin login de admin, la seguridad es el link personal.</p>
+      <p class="muted" style="margin-top:10px;">"Ver como participante" abre su panel general tal cual lo ve esa persona (desde ahí tiene un botón a su formulario) — sin login de admin, la seguridad es el link personal.</p>
     {% endif %}
 
     <details style="margin-top:16px;">

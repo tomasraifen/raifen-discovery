@@ -16,12 +16,19 @@
       --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
       --canvas: #000A1F;
       --card: #ffffff; --card-inset: #eef1f6; --texto: var(--earth-800); --muted: #5C6B84; --borde: #e2e8f0;
+      --saber-bg: #eef2ff; --saber-borde: #c7d2fe;
       --header-bg: #EAF9FC; --header-texto: #001233; --header-borde: #2CC4DC;
     }
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) { --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
+      :root:not([data-theme="light"]) {
+        --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
+        --saber-bg: #14205e; --saber-borde: #4C448D;
+      }
     }
-    :root[data-theme="dark"] { --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
+    :root[data-theme="dark"] {
+      --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F;
+      --saber-bg: #14205e; --saber-borde: #4C448D;
+    }
     /* El header no cambia con el tema -- siempre claro. El fondo de pagina tampoco --
        siempre oscuro con los degradados de marca, solo las tarjetas cambian. */
     * { box-sizing: border-box; }
@@ -49,7 +56,7 @@
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
     @media (max-width: 860px) { .grid-2 { grid-template-columns: 1fr; } }
     .card { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }
-    .saber-card { background: rgba(76,68,141,.08); border: 1px solid rgba(76,68,141,.25); }
+    .saber-card { background: var(--saber-bg); border: 1px solid var(--saber-borde); }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borde); font-size: 14px; }
     th { color: var(--muted); font-weight: 600; }
