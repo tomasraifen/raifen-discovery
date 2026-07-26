@@ -33,15 +33,55 @@
     </div>
     {% endif %}
 
-    <div class="card">
-      <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
+    <div class="card" id="card-lo-que-sabemos">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+        <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
+        <button type="button" id="btn-expandir-saber" class="icon-btn" title="Agrandar">⤢</button>
+      </div>
       <p class="muted" style="margin:0 0 10px;">Se muestra a cada participante al arrancar su formulario, y en su panel general — transparente: si algo no corresponde, ellos mismos lo corrigen desde ahí.</p>
-      <form method="post" action="/admin/lo-que-sabemos">
-        <textarea name="texto" rows="6" style="width:100%;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
+      <form method="post" action="/admin/lo-que-sabemos" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+        <textarea name="texto" id="texto-lo-que-sabemos" style="width:100%;flex:1;min-height:80px;resize:none;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
         <div style="margin-top:8px;"><button class="btn secundario" type="submit">Guardar</button></div>
       </form>
     </div>
   </div>
+
+  <div id="fondo-expandido" style="display:none;position:fixed;inset:0;background:rgba(0,10,31,.6);z-index:100;"></div>
+
+  <script>
+    (function () {
+      const card = document.getElementById("card-lo-que-sabemos");
+      const btn = document.getElementById("btn-expandir-saber");
+      const fondo = document.getElementById("fondo-expandido");
+      const textarea = document.getElementById("texto-lo-que-sabemos");
+      let expandido = false;
+      btn.addEventListener("click", () => {
+        expandido = !expandido;
+        if (expandido) {
+          card.style.position = "fixed";
+          card.style.inset = "5vh 8vw";
+          card.style.maxHeight = "90vh";
+          card.style.width = "auto";
+          card.style.zIndex = "101";
+          fondo.style.display = "block";
+          btn.textContent = "⤡";
+          btn.title = "Minimizar";
+          textarea.style.minHeight = "50vh";
+        } else {
+          card.style.position = "";
+          card.style.inset = "";
+          card.style.maxHeight = "";
+          card.style.width = "";
+          card.style.zIndex = "";
+          fondo.style.display = "none";
+          btn.textContent = "⤢";
+          btn.title = "Agrandar";
+          textarea.style.minHeight = "80px";
+        }
+      });
+      fondo.addEventListener("click", () => { if (expandido) btn.click(); });
+    })();
+  </script>
 
   <div class="card">
     <h2 style="margin-top:0;">Participantes (stakeholders)</h2>
