@@ -43,8 +43,12 @@ def _pregunta_por_id(proyecto: dict, pregunta_id: str) -> dict | None:
     return None
 
 
-def _formulario_de(proyecto: dict, p: dict) -> dict:
-    formulario = settings.formulario_por_id(proyecto, p.get("formulario_id") or settings.DEFAULT_FORMULARIO_ID)
+def _formulario_de(proyecto: dict, p: dict, formulario_id: str | None = None) -> dict:
+    """Formulario a mostrar: el pedido explicitamente (?formulario=<id>, para que un
+    participante pueda ver/responder cualquier formulario del proyecto desde su mismo
+    link, no solo el asignado por default) o, si no se pide ninguno, el asignado."""
+    fid = formulario_id or p.get("formulario_id") or settings.DEFAULT_FORMULARIO_ID
+    formulario = settings.formulario_por_id(proyecto, fid)
     return formulario or proyecto["formularios"][0]
 
 
@@ -235,7 +239,14 @@ def ver_participante(request: Request, pid: str):
     proyecto = _proyecto()
     formulario = _formulario_de(proyecto, p)
     respuestas = store.get_respuestas(p)
-    adjuntos = store.listar_adjuntos(pid)
+    # Solo adjuntos de preguntas de ESTE formulario (o sin pregunta asociada, ej. un
+    # adjunto general) -- antes se mostraban los de cualquier formulario que el
+    # participante hubiera tenido asignado alguna vez.
+    ids_preguntas_formulario = {pr["id"] for t in formulario.get("temas", []) for pr in t.get("preguntas", [])}
+    adjuntos = [
+        a for a in store.listar_adjuntos(pid)
+        if not a.get("pregunta_id") or a["pregunta_id"] in ids_preguntas_formulario
+    ]
     link = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     return templates.TemplateResponse(
         request, "admin_participante.html",
@@ -314,20 +325,21 @@ def health():
 # ---------- Publico (sin login admin -- la seguridad es el token) ----------
 
 @app.get("/r/{token}", response_class=HTMLResponse)
-def relevar(request: Request, token: str):
+def relevar(request: Request, token: str, formulario: str | None = None):
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
-    formulario = _formulario_de(proyecto, p)
+    formulario_actual = _formulario_de(proyecto, p, formulario)
     respuestas = store.get_respuestas(p)
-    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"]))
+    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario_actual["id"]))
     return templates.TemplateResponse(
         request, "participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas,
             "progreso": store.progreso(p, total_preguntas),
-            "temas": formulario.get("temas", []), "formulario": formulario,
+            "temas": formulario_actual.get("temas", []), "formulario": formulario_actual,
+            "formularios": proyecto.get("formularios", []),
         },
     )
 

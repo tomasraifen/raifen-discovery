@@ -111,6 +111,14 @@
   <div class="intro">
     <h1>Hola{% if p.nombre %}, {{ p.nombre.split(" ")[0] }}{% endif %} 👋</h1>
     <p style="margin:0;">Este es un formulario corto sobre cómo funciona el negocio hoy — ayuda a entender qué construir. No hay respuestas correctas o incorrectas: lo importante es contar lo que pasa en la práctica. Se puede escribir o grabar la respuesta en voz, y volver más tarde — todo se guarda solo, no hace falta terminarlo de una sola vez.</p>
+    {% if formularios and formularios | length > 1 %}
+    <p style="margin:12px 0 0;font-size:13px;">
+      <span class="muted">Viendo: <b>{{ formulario.nombre }}</b> · cambiar a:</span>
+      {% for f in formularios %}{% if f.id != formulario.id %}
+      <a href="/r/{{ p.token }}?formulario={{ f.id }}" style="margin-left:6px;">{{ f.nombre }}</a>{% if not loop.last %} ·{% endif %}
+      {% endif %}{% endfor %}
+    </p>
+    {% endif %}
   </div>
 
   {% if p.estado == "completado" %}

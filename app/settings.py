@@ -121,10 +121,24 @@ def _dedup_id(base_id: str, ids_existentes: set[str]) -> str:
     return candidato
 
 
-def _construir_pregunta(pd: dict, ids_existentes: set[str]) -> dict:
-    """pd: {"texto", "tipo", "opciones"?, "ayuda"?} -- muta ids_existentes."""
-    pregunta_id = _dedup_id(_slug(pd["texto"]), ids_existentes)
-    ids_existentes.add(pregunta_id)
+def _todos_los_ids_temas(proyecto: dict) -> set[str]:
+    return {t["id"] for f in proyecto.get("formularios", []) for t in f.get("temas", [])}
+
+
+def _todos_los_ids_preguntas(proyecto: dict) -> set[str]:
+    return {
+        p["id"] for f in proyecto.get("formularios", []) for t in f.get("temas", []) for p in t.get("preguntas", [])
+    }
+
+
+def _construir_pregunta(pd: dict, ids_preguntas: set[str]) -> dict:
+    """pd: {"texto", "tipo", "opciones"?, "ayuda"?}. ids_preguntas debe venir sembrado
+    con TODOS los ids de pregunta del proyecto (no solo del tema/formulario actual) --
+    los ids de pregunta son unicos a nivel de proyecto entero, se buscan globalmente
+    (ver settings._pregunta_por_id / api._pregunta_por_id) asi que dos preguntas en
+    formularios distintos no pueden colisionar. Muta ids_preguntas."""
+    pregunta_id = _dedup_id(_slug(pd["texto"]), ids_preguntas)
+    ids_preguntas.add(pregunta_id)
     nueva = {"id": pregunta_id, "texto": pd["texto"], "tipo": pd["tipo"]}
     if pd.get("ayuda"):
         nueva["ayuda"] = pd["ayuda"]
@@ -133,11 +147,11 @@ def _construir_pregunta(pd: dict, ids_existentes: set[str]) -> dict:
     return nueva
 
 
-def _construir_tema(tema_data: dict, ids_existentes: set[str]) -> dict:
-    """tema_data: {"titulo", "preguntas": [pd, ...]} -- muta ids_existentes (ids de tema)."""
-    tema_id = _dedup_id(_slug(tema_data["titulo"]), ids_existentes)
-    ids_existentes.add(tema_id)
-    ids_preguntas: set[str] = set()
+def _construir_tema(tema_data: dict, ids_temas: set[str], ids_preguntas: set[str]) -> dict:
+    """tema_data: {"titulo", "preguntas": [pd, ...]}. Ambos sets deben venir sembrados a
+    nivel de proyecto entero -- ver _construir_pregunta. Muta los dos sets."""
+    tema_id = _dedup_id(_slug(tema_data["titulo"]), ids_temas)
+    ids_temas.add(tema_id)
     preguntas = [_construir_pregunta(pd, ids_preguntas) for pd in tema_data.get("preguntas", [])]
     return {"id": tema_id, "titulo": tema_data["titulo"], "preguntas": preguntas}
 
@@ -169,8 +183,10 @@ def agregar_tema(proyecto: dict, formulario_id: str, titulo: str) -> dict:
     formulario = formulario_por_id(proyecto, formulario_id)
     if not formulario:
         raise ValueError(f"formulario '{formulario_id}' no existe")
-    ids_existentes = {t["id"] for t in formulario.setdefault("temas", [])}
-    formulario["temas"].append(_construir_tema({"titulo": titulo, "preguntas": []}, ids_existentes))
+    formulario.setdefault("temas", [])
+    formulario["temas"].append(_construir_tema(
+        {"titulo": titulo, "preguntas": []}, _todos_los_ids_temas(proyecto), _todos_los_ids_preguntas(proyecto)
+    ))
     guardar_proyecto(proyecto)
     return proyecto
 
@@ -184,9 +200,9 @@ def agregar_pregunta(
         raise ValueError(f"formulario '{formulario_id}' no existe")
     for tema in formulario.get("temas", []):
         if tema["id"] == tema_id:
-            ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
+            tema.setdefault("preguntas", [])
             tema["preguntas"].append(_construir_pregunta(
-                {"texto": texto, "tipo": tipo, "opciones": opciones, "ayuda": ayuda}, ids_existentes
+                {"texto": texto, "tipo": tipo, "opciones": opciones, "ayuda": ayuda}, _todos_los_ids_preguntas(proyecto)
             ))
             break
     else:
@@ -201,8 +217,9 @@ def agregar_pregunta(
 def crear_formulario_completo(proyecto: dict, nombre: str, temas_data: list[dict]) -> dict:
     """temas_data: [{"titulo": ..., "preguntas": [{"texto","tipo","opciones"?,"ayuda"?}, ...]}, ...]"""
     formulario_id = _dedup_id(_slug(nombre), {f["id"] for f in proyecto.setdefault("formularios", [])})
-    ids_temas: set[str] = set()
-    temas = [_construir_tema(td, ids_temas) for td in temas_data]
+    ids_temas = _todos_los_ids_temas(proyecto)
+    ids_preguntas = _todos_los_ids_preguntas(proyecto)
+    temas = [_construir_tema(td, ids_temas, ids_preguntas) for td in temas_data]
     proyecto["formularios"].append({"id": formulario_id, "nombre": nombre, "temas": temas})
     guardar_proyecto(proyecto)
     return proyecto
@@ -215,9 +232,11 @@ def agregar_temas_a_formulario(proyecto: dict, formulario_id: str, temas_data: l
     formulario = formulario_por_id(proyecto, formulario_id)
     if not formulario:
         raise ValueError(f"formulario '{formulario_id}' no existe")
-    ids_existentes = {t["id"] for t in formulario.setdefault("temas", [])}
+    formulario.setdefault("temas", [])
+    ids_temas = _todos_los_ids_temas(proyecto)
+    ids_preguntas = _todos_los_ids_preguntas(proyecto)
     for tema_data in temas_data:
-        formulario["temas"].append(_construir_tema(tema_data, ids_existentes))
+        formulario["temas"].append(_construir_tema(tema_data, ids_temas, ids_preguntas))
     guardar_proyecto(proyecto)
     return proyecto
 
@@ -229,9 +248,10 @@ def agregar_preguntas_a_tema(proyecto: dict, formulario_id: str, tema_id: str, p
         raise ValueError(f"formulario '{formulario_id}' no existe")
     for tema in formulario.get("temas", []):
         if tema["id"] == tema_id:
-            ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
+            tema.setdefault("preguntas", [])
+            ids_preguntas = _todos_los_ids_preguntas(proyecto)
             for pd in preguntas_data:
-                tema["preguntas"].append(_construir_pregunta(pd, ids_existentes))
+                tema["preguntas"].append(_construir_pregunta(pd, ids_preguntas))
             break
     else:
         raise ValueError(f"tema '{tema_id}' no existe en el formulario '{formulario_id}'")

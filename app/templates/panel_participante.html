@@ -81,7 +81,18 @@
   <div class="card">
     <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
     <p class="muted" style="margin:0 0 14px;">Así va el discovery del proyecto — quién ya respondió y qué áreas están cubiertas.</p>
-    <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
+    {% if proyecto.formularios | length > 1 %}
+      <p class="muted" style="margin:0 0 10px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {% for f in proyecto.formularios %}
+        <a class="btn {% if f.id != p.formulario_id %}secundario{% endif %}" style="{% if f.id != p.formulario_id %}background:transparent;color:var(--mint);border:1px solid var(--mint);{% endif %}" href="/r/{{ p.token }}?formulario={{ f.id }}">
+          {{ f.nombre }}{% if f.id == p.formulario_id %} (el mío){% endif %} →
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
+    {% endif %}
   </div>
 
   <div class="grid-2">
