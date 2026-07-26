@@ -102,6 +102,38 @@ def _slug(texto: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", ascii_txt.lower()).strip("_") or "item"
 
 
+def _dedup_id(base_id: str, ids_existentes: set[str]) -> str:
+    if base_id not in ids_existentes:
+        return base_id
+    sufijo = 2
+    candidato = f"{base_id}_{sufijo}"
+    while candidato in ids_existentes:
+        sufijo += 1
+        candidato = f"{base_id}_{sufijo}"
+    return candidato
+
+
+def _construir_pregunta(pd: dict, ids_existentes: set[str]) -> dict:
+    """pd: {"texto", "tipo", "opciones"?, "ayuda"?} -- muta ids_existentes."""
+    pregunta_id = _dedup_id(_slug(pd["texto"]), ids_existentes)
+    ids_existentes.add(pregunta_id)
+    nueva = {"id": pregunta_id, "texto": pd["texto"], "tipo": pd["tipo"]}
+    if pd.get("ayuda"):
+        nueva["ayuda"] = pd["ayuda"]
+    if pd["tipo"] in ("opcion_unica", "opcion_multiple") and pd.get("opciones"):
+        nueva["opciones"] = pd["opciones"]
+    return nueva
+
+
+def _construir_tema(tema_data: dict, ids_existentes: set[str]) -> dict:
+    """tema_data: {"titulo", "preguntas": [pd, ...]} -- muta ids_existentes (ids de tema)."""
+    tema_id = _dedup_id(_slug(tema_data["titulo"]), ids_existentes)
+    ids_existentes.add(tema_id)
+    ids_preguntas: set[str] = set()
+    preguntas = [_construir_pregunta(pd, ids_preguntas) for pd in tema_data.get("preguntas", [])]
+    return {"id": tema_id, "titulo": tema_data["titulo"], "preguntas": preguntas}
+
+
 def guardar_proyecto(proyecto: dict):
     """Escribe config/proyecto.yaml de vuelta -- lo usa el editor de formularios/temas/
     preguntas/participantes del panel admin. El archivo es un bind mount con permiso de
@@ -129,14 +161,8 @@ def agregar_tema(proyecto: dict, formulario_id: str, titulo: str) -> dict:
     formulario = formulario_por_id(proyecto, formulario_id)
     if not formulario:
         raise ValueError(f"formulario '{formulario_id}' no existe")
-    tema_id = _slug(titulo)
     ids_existentes = {t["id"] for t in formulario.setdefault("temas", [])}
-    sufijo = 2
-    tema_id_final = tema_id
-    while tema_id_final in ids_existentes:
-        tema_id_final = f"{tema_id}_{sufijo}"
-        sufijo += 1
-    formulario["temas"].append({"id": tema_id_final, "titulo": titulo, "preguntas": []})
+    formulario["temas"].append(_construir_tema({"titulo": titulo, "preguntas": []}, ids_existentes))
     guardar_proyecto(proyecto)
     return proyecto
 
@@ -150,19 +176,54 @@ def agregar_pregunta(
         raise ValueError(f"formulario '{formulario_id}' no existe")
     for tema in formulario.get("temas", []):
         if tema["id"] == tema_id:
-            pregunta_id = _slug(texto)
             ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
-            sufijo = 2
-            pregunta_id_final = pregunta_id
-            while pregunta_id_final in ids_existentes:
-                pregunta_id_final = f"{pregunta_id}_{sufijo}"
-                sufijo += 1
-            nueva = {"id": pregunta_id_final, "texto": texto, "tipo": tipo}
-            if ayuda:
-                nueva["ayuda"] = ayuda
-            if tipo in ("opcion_unica", "opcion_multiple") and opciones:
-                nueva["opciones"] = opciones
-            tema["preguntas"].append(nueva)
+            tema["preguntas"].append(_construir_pregunta(
+                {"texto": texto, "tipo": tipo, "opciones": opciones, "ayuda": ayuda}, ids_existentes
+            ))
+            break
+    else:
+        raise ValueError(f"tema '{tema_id}' no existe en el formulario '{formulario_id}'")
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+# ---------- Alta en bloque -- para que Catequil suba contenido ya acordado con Tom en
+# una sola llamada (una request, no una por pregunta) ----------
+
+def crear_formulario_completo(proyecto: dict, nombre: str, temas_data: list[dict]) -> dict:
+    """temas_data: [{"titulo": ..., "preguntas": [{"texto","tipo","opciones"?,"ayuda"?}, ...]}, ...]"""
+    formulario_id = _dedup_id(_slug(nombre), {f["id"] for f in proyecto.setdefault("formularios", [])})
+    ids_temas: set[str] = set()
+    temas = [_construir_tema(td, ids_temas) for td in temas_data]
+    proyecto["formularios"].append({"id": formulario_id, "nombre": nombre, "temas": temas})
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def agregar_temas_a_formulario(proyecto: dict, formulario_id: str, temas_data: list[dict]) -> dict:
+    """Agrega uno o mas temas (con sus preguntas) a un formulario YA EXISTENTE, en una
+    sola llamada -- para cuando Catequil decide sumar preguntas nuevas a un formulario
+    en curso en vez de crear uno aparte."""
+    formulario = formulario_por_id(proyecto, formulario_id)
+    if not formulario:
+        raise ValueError(f"formulario '{formulario_id}' no existe")
+    ids_existentes = {t["id"] for t in formulario.setdefault("temas", [])}
+    for tema_data in temas_data:
+        formulario["temas"].append(_construir_tema(tema_data, ids_existentes))
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
+def agregar_preguntas_a_tema(proyecto: dict, formulario_id: str, tema_id: str, preguntas_data: list[dict]) -> dict:
+    """Agrega varias preguntas de una vez a un tema ya existente."""
+    formulario = formulario_por_id(proyecto, formulario_id)
+    if not formulario:
+        raise ValueError(f"formulario '{formulario_id}' no existe")
+    for tema in formulario.get("temas", []):
+        if tema["id"] == tema_id:
+            ids_existentes = {p["id"] for p in tema.setdefault("preguntas", [])}
+            for pd in preguntas_data:
+                tema["preguntas"].append(_construir_pregunta(pd, ids_existentes))
             break
     else:
         raise ValueError(f"tema '{tema_id}' no existe en el formulario '{formulario_id}'")

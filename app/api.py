@@ -179,6 +179,45 @@ def api_respuestas():
     })
 
 
+# ---------- Alta en bloque (JSON) -- para que Catequil suba contenido ya acordado con
+# Tom en una sola llamada, en vez de clickear campo a campo en el editor HTML ----------
+
+@app.post("/admin/api/formularios")
+async def api_crear_formulario(request: Request):
+    """Body: {"nombre": str, "temas": [{"titulo": str, "preguntas": [{"texto","tipo","opciones"?,"ayuda"?}]}]}"""
+    body = await request.json()
+    nombre = (body.get("nombre") or "").strip()
+    if not nombre:
+        raise HTTPException(400, "falta el nombre del formulario")
+    try:
+        settings.crear_formulario_completo(_proyecto(), nombre, body.get("temas", []))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    return JSONResponse({"ok": True})
+
+
+@app.post("/admin/api/formularios/{formulario_id}/temas")
+async def api_agregar_temas(request: Request, formulario_id: str):
+    """Body: {"temas": [{"titulo": str, "preguntas": [...]}]}"""
+    body = await request.json()
+    try:
+        settings.agregar_temas_a_formulario(_proyecto(), formulario_id, body.get("temas", []))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    return JSONResponse({"ok": True})
+
+
+@app.post("/admin/api/formularios/{formulario_id}/temas/{tema_id}/preguntas")
+async def api_agregar_preguntas(request: Request, formulario_id: str, tema_id: str):
+    """Body: {"preguntas": [{"texto","tipo","opciones"?,"ayuda"?}]}"""
+    body = await request.json()
+    try:
+        settings.agregar_preguntas_a_tema(_proyecto(), formulario_id, tema_id, body.get("preguntas", []))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(400, str(e))
+    return JSONResponse({"ok": True})
+
+
 @app.get("/admin/editor", response_class=HTMLResponse)
 def editor(request: Request):
     proyecto = _proyecto()
@@ -357,9 +396,13 @@ def panel_participante(request: Request, token: str):
         part["progreso"] = store.progreso(part, len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])))
         part["formulario_nombre"] = formulario_part["nombre"]
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
+    reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(
         request, "panel_participante.html",
-        {"p": p, "proyecto": proyecto, "participantes": participantes, "resumen_temas": resumen_temas},
+        {
+            "p": p, "proyecto": proyecto, "participantes": participantes, "resumen_temas": resumen_temas,
+            "reglas_confirmadas": reglas_confirmadas,
+        },
     )
 
 

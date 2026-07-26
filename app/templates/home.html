@@ -13,32 +13,34 @@
     </div>
   </div>
 
-  {% if resumen_temas %}
-  <div class="card">
-    <h2 style="margin-top:0;">Panel de control — qué se sabe hasta ahora</h2>
-    <p class="muted" style="margin:0 0 10px;">Cuántas preguntas de cada área ya tienen al menos una respuesta, sumando a todos los participantes.</p>
-    <table>
-      <tr><th>Área</th><th>Cobertura</th></tr>
-      {% for t in resumen_temas %}
-      <tr>
-        <td>{{ t.titulo }}</td>
-        <td style="width:220px;">
-          <div class="progreso-barra"><div style="width: {{ (t.cubiertas / t.total * 100) if t.total else 0 }}%;"></div></div>
-          <span class="muted">{{ t.cubiertas }}/{{ t.total }}</span>
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-  {% endif %}
+  <div class="grid-2">
+    {% if resumen_temas %}
+    <div class="card">
+      <h2 style="margin-top:0;">Panel de control — qué se sabe hasta ahora</h2>
+      <p class="muted" style="margin:0 0 10px;">Cuántas preguntas de cada área ya tienen al menos una respuesta, sumando a todos los participantes.</p>
+      <table>
+        <tr><th>Área</th><th>Cobertura</th></tr>
+        {% for t in resumen_temas %}
+        <tr>
+          <td>{{ t.titulo }}</td>
+          <td style="width:180px;">
+            <div class="progreso-barra"><div style="width: {{ (t.cubiertas / t.total * 100) if t.total else 0 }}%;"></div></div>
+            <span class="muted">{{ t.cubiertas }}/{{ t.total }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
 
-  <div class="card">
-    <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
-    <p class="muted" style="margin:0 0 10px;">Este texto se le muestra a cada participante al arrancar su formulario, de forma transparente — si algo no corresponde, ellos mismos lo corrigen desde su formulario.</p>
-    <form method="post" action="/admin/lo-que-sabemos">
-      <textarea name="texto" rows="4" style="width:100%;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
-      <div style="margin-top:8px;"><button class="btn secundario" type="submit">Guardar</button></div>
-    </form>
+    <div class="card">
+      <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
+      <p class="muted" style="margin:0 0 10px;">Se muestra a cada participante al arrancar su formulario, y en su panel general — transparente: si algo no corresponde, ellos mismos lo corrigen desde ahí.</p>
+      <form method="post" action="/admin/lo-que-sabemos">
+        <textarea name="texto" rows="6" style="width:100%;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
+        <div style="margin-top:8px;"><button class="btn secundario" type="submit">Guardar</button></div>
+      </form>
+    </div>
   </div>
 
   <div class="card">
