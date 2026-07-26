@@ -14,16 +14,27 @@
     :root {
       --cyan: #2CC4DC; --mint: #348AB7; --violeta: #4C448D; --earth-800: #001233;
       --success: #34C77B; --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
-      --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: #64748b; --borde: #e2e8f0;
+      --canvas: #000A1F;
+      --card: #ffffff; --card-inset: #eef1f6; --texto: var(--earth-800); --muted: #5C6B84; --borde: #e2e8f0;
       --header-bg: #EAF9FC; --header-texto: #001233; --header-borde: #2CC4DC;
     }
     @media (prefers-color-scheme: dark) {
-      :root:not([data-theme="light"]) { --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
+      :root:not([data-theme="light"]) { --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
     }
-    :root[data-theme="dark"] { --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
-    /* El header no cambia con el tema -- siempre claro, siempre logo a color. */
+    :root[data-theme="dark"] { --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: #A9B7CC; --borde: #1E3A5F; }
+    /* El header no cambia con el tema -- siempre claro. El fondo de pagina tampoco --
+       siempre oscuro con los degradados de marca, solo las tarjetas cambian. */
     * { box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--bg); color: var(--texto); margin: 0; }
+    body {
+      font-family: var(--font-body); color: var(--texto); margin: 0;
+      background-color: var(--canvas);
+      background-image:
+        radial-gradient(ellipse 60% 50% at 8% 0%, rgba(76, 68, 141, 0.38), transparent 60%),
+        radial-gradient(ellipse 55% 45% at 95% 15%, rgba(44, 196, 220, 0.22), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 100%, rgba(52, 138, 183, 0.16), transparent 65%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+    }
     h1, h2 { font-family: var(--font-heading); }
     header {
       background: var(--header-bg); border-bottom: 2px solid var(--header-borde);

@@ -17,14 +17,19 @@
       --success: #34C77B;
       --font-heading: 'Sora', sans-serif; --font-body: 'DM Sans', -apple-system, sans-serif;
 
-      --bg: #f4f6f9; --card: #ffffff; --texto: var(--earth-800); --muted: var(--earth-600); --borde: #e2e8f0;
+      /* Lienzo de fondo: SIEMPRE oscuro con los degradados de marca, no cambia con el
+         toggle -- lo unico que cambia entre claro/oscuro es el color de las tarjetas
+         que flotan encima (pedido explicito: el modo claro plano se veia sin fuerza). */
+      --canvas: #000A1F;
+
+      --card: #ffffff; --card-inset: #eef1f6; --texto: var(--earth-800); --muted: #5C6B84; --borde: #e2e8f0;
     }
     :root[data-theme="dark"] {
-      --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
+      --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #000A1F; --card: #0A2647; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
+        --card: #0A2647; --card-inset: #071B3D; --texto: #F1F5F9; --muted: var(--earth-500); --borde: #1E3A5F;
       }
     }
     /* El header NUNCA cambia con el tema -- siempre claro, siempre logo a color (pedido
@@ -36,8 +41,15 @@
     }
     * { box-sizing: border-box; }
     body {
-      font-family: var(--font-body); background: var(--bg); color: var(--texto); margin: 0; padding: 0;
-      transition: background .2s, color .2s;
+      font-family: var(--font-body); color: var(--texto); margin: 0; padding: 0;
+      background-color: var(--canvas);
+      background-image:
+        radial-gradient(ellipse 60% 50% at 8% 0%, rgba(76, 68, 141, 0.38), transparent 60%),
+        radial-gradient(ellipse 55% 45% at 95% 15%, rgba(44, 196, 220, 0.22), transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 100%, rgba(52, 138, 183, 0.16), transparent 65%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      transition: color .2s;
     }
     h1, h2, h3 { font-family: var(--font-heading); }
     header.top {
@@ -61,7 +73,7 @@
       background: var(--header-link-hover); border: 1px solid currentColor; opacity: .9; color: var(--header-texto);
       border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px;
     }
-    main { max-width: 1360px; margin: 0 auto; padding: 24px 28px 64px; }
+    main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 64px; }
     .card {
       background: var(--card); border: 1px solid var(--borde); border-radius: 12px;
       padding: 20px; margin-bottom: 16px;
@@ -95,12 +107,12 @@
     .muted { color: var(--muted); font-size: 13px; }
     a { color: var(--mint); }
     input, textarea, select {
-      font-family: var(--font-body); background: var(--bg); color: var(--texto);
+      font-family: var(--font-body); background: var(--card-inset); color: var(--texto);
       border: 1px solid var(--borde); border-radius: 8px; padding: 8px;
     }
     .stepper { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 0; }
     .stepper .paso {
-      flex: 1; min-width: 150px; background: var(--bg); border: 1px solid var(--borde);
+      flex: 1; min-width: 150px; background: var(--card-inset); border: 1px solid var(--borde);
       border-radius: 10px; padding: 12px 14px; font-size: 13.5px;
     }
     .stepper .paso b { display: block; font-family: var(--font-heading); color: var(--mint); margin-bottom: 4px; font-size: 13px; }

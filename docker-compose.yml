@@ -15,6 +15,12 @@ services:
       TRANSCRIBE_API_KEY: ${TRANSCRIBE_API_KEY}
       TRANSCRIBE_URL: ${TRANSCRIBE_URL:-https://transcribe.raifen.ai}
       N8N_MARKDOWN_WEBHOOK: ${N8N_MARKDOWN_WEBHOOK:-https://n8n.raifen.ai/webhook/markdown-raifen}
+      ADMIN_REVIEW_EMAIL: ${ADMIN_REVIEW_EMAIL:-tomas@raifen.ai}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-587}
+      MAIL_SMTP_USER: ${MAIL_SMTP_USER:-}
+      MAIL_SMTP_PASS: ${MAIL_SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-Raifen Discovery <no-reply@raifen.ai>}
       BASIC_AUTH_USER: ${BASIC_AUTH_USER}
       BASIC_AUTH_PASS: ${BASIC_AUTH_PASS}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}

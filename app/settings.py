@@ -41,6 +41,14 @@ N8N_MARKDOWN_WEBHOOK = os.getenv("N8N_MARKDOWN_WEBHOOK", "https://n8n.raifen.ai/
 # real del webhook.
 ADMIN_REVIEW_EMAIL = os.getenv("ADMIN_REVIEW_EMAIL", "tomas@raifen.ai")
 
+# Aviso por correo cuando un participante finaliza su formulario -- opcional: si
+# MAIL_SMTP_HOST no esta seteado, el aviso se saltea sin romper nada (ver mailer.py).
+MAIL_SMTP_HOST = os.getenv("MAIL_SMTP_HOST", "")
+MAIL_SMTP_PORT = int(os.getenv("MAIL_SMTP_PORT", "587") or "587")
+MAIL_SMTP_USER = os.getenv("MAIL_SMTP_USER", "")
+MAIL_SMTP_PASS = os.getenv("MAIL_SMTP_PASS", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "Raifen Discovery <no-reply@raifen.ai>")
+
 CONFIG_DIR = ROOT / "config"
 
 DEFAULT_FORMULARIO_ID = "principal"

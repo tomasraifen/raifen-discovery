@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import formato_empresa, render, settings, store, transcribe
+from . import formato_empresa, mailer, render, settings, store, transcribe
 from .auth_middleware import BasicAuthMiddleware
 
 app = FastAPI(title="Raifen Discovery")
@@ -367,6 +367,11 @@ def finalizar(token: str):
     if not p:
         raise HTTPException(404, "link inválido")
     store.marcar_completado(p["id"])
+    proyecto = _proyecto()
+    try:
+        mailer.notificar_completado(p["nombre"], proyecto["cliente"], f"{settings.PUBLIC_BASE_URL}/admin/participantes/{p['id']}")
+    except Exception:
+        pass  # el aviso es best-effort, nunca bloquea el flujo del participante
     return JSONResponse({"ok": True, "siguiente": f"/r/{token}/gracias"})
 
 
