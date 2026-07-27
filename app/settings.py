@@ -67,7 +67,12 @@ def _normalizar_formularios(proyecto: dict) -> dict:
             {"id": DEFAULT_FORMULARIO_ID, "nombre": "Formulario principal", "temas": temas_legacy}
         ]
     for p in proyecto.get("participantes", []):
-        p.setdefault("formulario_id", DEFAULT_FORMULARIO_ID)
+        # Schema viejo: un solo "formulario_id" por persona. Nuevo: "formulario_ids"
+        # (lista) -- una persona puede tener 0, 1 o varios formularios asignados por
+        # default (ver knowledge/proyectos/raifen_discovery_plataforma.md).
+        if "formulario_ids" not in p:
+            antiguo = p.pop("formulario_id", None)
+            p["formulario_ids"] = [antiguo] if antiguo else []
     return proyecto
 
 
@@ -271,10 +276,10 @@ def eliminar_pregunta(proyecto: dict, formulario_id: str, tema_id: str, pregunta
 
 
 def agregar_participante_a_yaml(
-    proyecto: dict, nombre: str, cargo: str, email: str, formulario_id: str = DEFAULT_FORMULARIO_ID
+    proyecto: dict, nombre: str, cargo: str, email: str, formulario_ids: list[str] | None = None
 ) -> dict:
     proyecto.setdefault("participantes", []).append(
-        {"nombre": nombre, "cargo": cargo, "email": email, "formulario_id": formulario_id}
+        {"nombre": nombre, "cargo": cargo, "email": email, "formulario_ids": formulario_ids or []}
     )
     guardar_proyecto(proyecto)
     return proyecto

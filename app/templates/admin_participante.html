@@ -15,15 +15,17 @@
         <button class="btn secundario" style="padding:6px 10px;font-size:12.5px;" type="submit">Guardar</button>
       </form>
     </details>
-    <form method="post" action="/admin/participantes/{{ p.id }}/formulario" style="margin-top:10px;display:flex;gap:6px;align-items:center;">
-      <label class="muted" style="font-size:12.5px;">Formulario asignado (por default, al abrir su link sin elegir uno):</label>
-      <select name="formulario_id" onchange="this.form.submit()">
-        <option value="" {% if not formulario %}selected{% endif %}>— Sin formulario, solo stakeholder —</option>
+    <form method="post" action="/admin/participantes/{{ p.id }}/formulario" style="margin-top:10px;">
+      <label class="muted" style="font-size:12.5px;display:block;margin-bottom:4px;">Formularios asignados (por default, al abrir su link sin elegir uno — puede ser más de uno):</label>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px;">
         {% for f in formularios %}
-        <option value="{{ f.id }}" {% if formulario and f.id == formulario.id %}selected{% endif %}>{{ f.nombre }}</option>
+        <label style="font-weight:400;display:flex;align-items:center;gap:6px;font-size:13.5px;">
+          <input type="checkbox" name="formulario_ids" value="{{ f.id }}" {% if f.id in formularios_asignados_ids %}checked{% endif %}>
+          {{ f.nombre }}
+        </label>
         {% endfor %}
-      </select>
-      <noscript><button class="btn secundario" style="padding:5px 10px;font-size:12.5px;" type="submit">Reasignar</button></noscript>
+      </div>
+      <button class="btn secundario" style="padding:5px 10px;font-size:12.5px;" type="submit">Guardar asignación</button>
     </form>
   </div>
 
@@ -34,44 +36,47 @@
   </div>
   {% endif %}
 
-  {% if not temas %}
+  {% if not formularios_asignados %}
   <div class="card">
-    <p class="muted" style="margin:0;">
-      {% if not formulario %}Este participante no tiene un formulario asignado todavía — es solo un stakeholder del proyecto.
-      {% else %}El formulario "{{ formulario.nombre }}" todavía no tiene preguntas cargadas.{% endif %}
-    </p>
+    <p class="muted" style="margin:0;">Este participante no tiene ningún formulario asignado todavía — es solo un stakeholder del proyecto.</p>
   </div>
   {% endif %}
 
-  {% for tema in temas %}
+  {% for formulario in formularios_asignados %}
   <div class="card">
-    <h2 style="margin-top:0;">{{ tema.titulo }}</h2>
-    {% for pregunta in tema.preguntas %}
-      {% set r = respuestas.get(pregunta.id) %}
-      <div style="margin-bottom:16px;">
-        <p class="muted" style="margin:0 0 4px;font-size:13px;">{{ pregunta.texto }}</p>
-        {% if r %}
-          <p style="margin:0 0 4px;">
-            {% if r.valor is iterable and r.valor is not string %}{{ r.valor | join(", ") }}{% else %}{{ r.valor }}{% endif %}
-            {% if r.fuente == "audio" %}<span class="pill" style="margin-left:6px;">🎙️ transcripto</span>{% endif %}
-            {% if r.fuente == "editado_por_admin" %}<span class="pill" style="margin-left:6px;">editado por admin</span>{% endif %}
-          </p>
-        {% else %}
-          <p class="muted" style="margin:0 0 4px;">— sin responder —</p>
-        {% endif %}
-        <details>
-          <summary style="cursor:pointer;font-size:12.5px;color:var(--mint);">{% if r %}Corregir{% else %}Cargar{% endif %} esta respuesta a mano</summary>
-          <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}" style="display:flex;gap:6px;margin-top:6px;">
-            <input type="text" name="valor" style="flex:1;" placeholder="{% if pregunta.tipo == 'opcion_multiple' %}separado por comas{% else %}valor nuevo{% endif %}" value="{% if r and r.valor is string %}{{ r.valor }}{% elif r %}{{ r.valor | join(', ') }}{% endif %}">
-            <button class="btn secundario" style="padding:6px 10px;font-size:12.5px;" type="submit">Guardar</button>
-          </form>
+    <h2 style="margin-top:0;">{{ formulario.nombre }}</h2>
+    {% if not formulario.temas %}
+      <p class="muted" style="margin:0;">Este formulario todavía no tiene preguntas cargadas.</p>
+    {% endif %}
+    {% for tema in formulario.temas %}
+      <h3 style="color:var(--mint);font-size:15px;margin:18px 0 10px;">{{ tema.titulo }}</h3>
+      {% for pregunta in tema.preguntas %}
+        {% set r = respuestas.get(pregunta.id) %}
+        <div style="margin-bottom:16px;">
+          <p class="muted" style="margin:0 0 4px;font-size:13px;">{{ pregunta.texto }}</p>
           {% if r %}
-          <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}/eliminar" style="margin-top:4px;" onsubmit="return confirm('¿Borrar esta respuesta?');">
-            <button class="btn secundario" style="padding:4px 10px;font-size:12px;" type="submit">Borrar respuesta</button>
-          </form>
+            <p style="margin:0 0 4px;">
+              {% if r.valor is iterable and r.valor is not string %}{{ r.valor | join(", ") }}{% else %}{{ r.valor }}{% endif %}
+              {% if r.fuente == "audio" %}<span class="pill" style="margin-left:6px;">🎙️ transcripto</span>{% endif %}
+              {% if r.fuente == "editado_por_admin" %}<span class="pill" style="margin-left:6px;">editado por admin</span>{% endif %}
+            </p>
+          {% else %}
+            <p class="muted" style="margin:0 0 4px;">— sin responder —</p>
           {% endif %}
-        </details>
-      </div>
+          <details>
+            <summary style="cursor:pointer;font-size:12.5px;color:var(--mint);">{% if r %}Corregir{% else %}Cargar{% endif %} esta respuesta a mano</summary>
+            <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}" style="display:flex;gap:6px;margin-top:6px;">
+              <input type="text" name="valor" style="flex:1;" placeholder="{% if pregunta.tipo == 'opcion_multiple' %}separado por comas{% else %}valor nuevo{% endif %}" value="{% if r and r.valor is string %}{{ r.valor }}{% elif r %}{{ r.valor | join(', ') }}{% endif %}">
+              <button class="btn secundario" style="padding:6px 10px;font-size:12.5px;" type="submit">Guardar</button>
+            </form>
+            {% if r %}
+            <form method="post" action="/admin/participantes/{{ p.id }}/respuestas/{{ pregunta.id }}/eliminar" style="margin-top:4px;" onsubmit="return confirm('¿Borrar esta respuesta?');">
+              <button class="btn secundario" style="padding:4px 10px;font-size:12px;" type="submit">Borrar respuesta</button>
+            </form>
+            {% endif %}
+          </details>
+        </div>
+      {% endfor %}
     {% endfor %}
   </div>
   {% endfor %}

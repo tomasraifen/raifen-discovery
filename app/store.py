@@ -25,6 +25,12 @@ CREATE TABLE IF NOT EXISTS participantes (
     formulario_id TEXT NOT NULL DEFAULT 'principal'
 );
 
+CREATE TABLE IF NOT EXISTS asignaciones (
+    participante_id TEXT NOT NULL,
+    formulario_id TEXT NOT NULL,
+    PRIMARY KEY (participante_id, formulario_id)
+);
+
 CREATE TABLE IF NOT EXISTS adjuntos (
     id TEXT PRIMARY KEY,
     participante_id TEXT NOT NULL,
@@ -76,6 +82,14 @@ def init_db():
                 c.execute(stmt)
             except sqlite3.OperationalError:
                 pass  # la columna ya existe -- tabla creada antes de este cambio
+        # Migra el viejo "un formulario_id por fila" a la tabla de asignaciones
+        # muchos-a-muchos (idempotente -- INSERT OR IGNORE, corre en cada arranque).
+        for r in c.execute("SELECT id, formulario_id FROM participantes").fetchall():
+            if r["formulario_id"]:
+                c.execute(
+                    "INSERT OR IGNORE INTO asignaciones (participante_id, formulario_id) VALUES (?, ?)",
+                    (r["id"], r["formulario_id"]),
+                )
 
 
 def sembrar_participantes(participantes: list[dict]) -> list[dict]:
@@ -83,7 +97,9 @@ def sembrar_participantes(participantes: list[dict]) -> list[dict]:
     existen. Corre en CADA arranque del contenedor (ver Dockerfile: `init-db` antes de
     `serve`), no solo la primera vez -- tiene que ser idempotente si o si. Match por
     email cuando hay; si el email viene vacio (comun en datos de prueba armados a mano)
-    se matchea por nombre, para no duplicar en cada redeploy."""
+    se matchea por nombre, para no duplicar en cada redeploy. `formulario_ids` (lista,
+    settings._normalizar_formularios ya normaliza el schema viejo de un solo
+    formulario_id al leer el yaml) define los formularios asignados por default."""
     creados = []
     with _conn() as c:
         filas = c.execute("SELECT nombre, email FROM participantes").fetchall()
@@ -97,30 +113,58 @@ def sembrar_participantes(participantes: list[dict]) -> list[dict]:
                 continue
             pid = str(uuid.uuid4())
             token = secrets.token_urlsafe(28)
+            formulario_ids = [fid for fid in p.get("formulario_ids", []) if fid]
             c.execute(
                 "INSERT INTO participantes (id, token, nombre, cargo, email, creado_en, estado, formulario_id) "
                 "VALUES (?, ?, ?, ?, ?, ?, 'pendiente', ?)",
                 (
                     pid, token, p["nombre"], p.get("cargo", ""), p.get("email", ""),
-                    datetime.now(timezone.utc).isoformat(), p.get("formulario_id", "principal"),
+                    datetime.now(timezone.utc).isoformat(), formulario_ids[0] if formulario_ids else "",
                 ),
             )
+            for fid in formulario_ids:
+                c.execute("INSERT OR IGNORE INTO asignaciones (participante_id, formulario_id) VALUES (?, ?)", (pid, fid))
             creados.append({"id": pid, "token": token, **p})
     return creados
 
 
 def listar_participantes() -> list[dict]:
+    """Una fila por PERSONA -- ya no una por asignacion a formulario (ver
+    `asignaciones`/`formularios_de_participante`)."""
     with _conn() as c:
         rows = c.execute(
-            "SELECT id, token, nombre, cargo, email, estado, respuestas_json, completado_en, formulario_id "
+            "SELECT id, token, nombre, cargo, email, estado, respuestas_json, completado_en "
             "FROM participantes ORDER BY creado_en"
         ).fetchall()
         return [dict(r) for r in rows]
 
 
-def actualizar_formulario_participante(pid: str, formulario_id: str):
+def formularios_de_participante(pid: str) -> list[str]:
     with _conn() as c:
-        c.execute("UPDATE participantes SET formulario_id = ? WHERE id = ?", (formulario_id, pid))
+        rows = c.execute(
+            "SELECT formulario_id FROM asignaciones WHERE participante_id = ? ORDER BY formulario_id", (pid,)
+        ).fetchall()
+        return [r["formulario_id"] for r in rows]
+
+
+def formularios_por_participante_bulk() -> dict[str, list[str]]:
+    """Para listados -- todas las asignaciones del proyecto en una sola query."""
+    with _conn() as c:
+        rows = c.execute("SELECT participante_id, formulario_id FROM asignaciones ORDER BY formulario_id").fetchall()
+    resultado: dict[str, list[str]] = {}
+    for r in rows:
+        resultado.setdefault(r["participante_id"], []).append(r["formulario_id"])
+    return resultado
+
+
+def asignar_formularios(pid: str, formulario_ids: list[str]):
+    """Reemplaza el set completo de formularios asignados a un participante (una
+    persona puede tener 0, 1 o varios)."""
+    with _conn() as c:
+        c.execute("DELETE FROM asignaciones WHERE participante_id = ?", (pid,))
+        for fid in formulario_ids:
+            if fid:
+                c.execute("INSERT OR IGNORE INTO asignaciones (participante_id, formulario_id) VALUES (?, ?)", (pid, fid))
 
 
 def actualizar_datos_participante(pid: str, nombre: str, cargo: str, email: str):
@@ -138,6 +182,7 @@ def eliminar_participante(pid: str):
     hay como dedupear)."""
     with _conn() as c:
         c.execute("DELETE FROM adjuntos WHERE participante_id = ?", (pid,))
+        c.execute("DELETE FROM asignaciones WHERE participante_id = ?", (pid,))
         c.execute("UPDATE reglas_negocio SET participante_id = NULL WHERE participante_id = ?", (pid,))
         c.execute("DELETE FROM participantes WHERE id = ?", (pid,))
 
@@ -257,9 +302,14 @@ def listar_aprobaciones() -> list[dict]:
         return [dict(r) for r in rows]
 
 
-def progreso(p: dict, total_preguntas: int) -> dict:
-    respondidas = len(get_respuestas(p))
-    return {"cubiertos": min(respondidas, total_preguntas), "total": total_preguntas}
+def progreso_formulario(p: dict, ids_preguntas: set[str]) -> dict:
+    """Progreso contra un set puntual de ids de pregunta (de uno o varios formularios
+    combinados) -- antes se contaban TODAS las respuestas guardadas sin filtrar por
+    formulario, lo cual quedaba mal apenas una persona tiene mas de un formulario
+    asignado (sus respuestas de un formulario inflaban el progreso del otro)."""
+    respuestas = get_respuestas(p)
+    cubiertos = sum(1 for qid in ids_preguntas if qid in respuestas)
+    return {"cubiertos": cubiertos, "total": len(ids_preguntas)}
 
 
 def resumen_por_tema(proyecto: dict, participantes: list[dict]) -> list[dict]:

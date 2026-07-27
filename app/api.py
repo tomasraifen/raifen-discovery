@@ -43,17 +43,18 @@ def _pregunta_por_id(proyecto: dict, pregunta_id: str) -> dict | None:
     return None
 
 
-def _formulario_de(proyecto: dict, p: dict, formulario_id: str | None = None) -> dict | None:
-    """Formulario a mostrar: el pedido explicitamente (?formulario=<id>, para que un
-    participante pueda ver/responder cualquier formulario del proyecto desde su mismo
-    link, no solo el asignado por default) o, si no se pide ninguno, el asignado.
-    Devuelve None si el participante es solo un stakeholder sin formulario asignado y
-    no se pidio ninguno puntual -- ver Fase 2 de catequil.md, no todos los contactos de
-    un proyecto tienen que completar un formulario."""
-    fid = formulario_id or p.get("formulario_id")
-    if not fid:
-        return None
-    return settings.formulario_por_id(proyecto, fid) or (proyecto["formularios"][0] if proyecto.get("formularios") else None)
+def _formulario_de(proyecto: dict, formulario_id: str) -> dict | None:
+    """Formulario a mostrar en /r/<token>?formulario=<id> -- la landing sin query param
+    ya no resuelve un formulario directo, siempre manda al panel primero (ver relevar()),
+    asi que este helper solo se usa con un id explicito."""
+    return settings.formulario_por_id(proyecto, formulario_id) or (proyecto["formularios"][0] if proyecto.get("formularios") else None)
+
+
+def _ids_preguntas_de_formularios(proyecto: dict, formulario_ids: list[str]) -> set[str]:
+    ids: set[str] = set()
+    for fid in formulario_ids:
+        ids |= {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=fid)}
+    return ids
 
 
 # ---------- Admin ----------
@@ -61,33 +62,37 @@ def _formulario_de(proyecto: dict, p: dict, formulario_id: str | None = None) ->
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     proyecto = _proyecto()
-    participantes = store.listar_participantes()
-    for p in participantes:
-        formulario = _formulario_de(proyecto, p)
-        p["formulario_nombre"] = formulario["nombre"] if formulario else None
-        p["formulario_id_resuelto"] = formulario["id"] if formulario else None
-        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario["id"])) if formulario else 0
-        p["progreso"] = store.progreso(p, total)
+    stakeholders = store.listar_participantes()  # ya es 1 fila por PERSONA, no por asignacion
+    for p in stakeholders:
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
-    reglas = store.listar_reglas()
-    resumen_temas = store.resumen_por_tema(proyecto, participantes)
 
-    # Matriz de PERSONAS unica -- si alguien esta asignado a mas de un formulario tiene
-    # varias filas en `participantes` (una por asignacion); acá se dedupea por
-    # nombre+correo para el listado de stakeholders reales del proyecto.
-    vistos = set()
-    stakeholders = []
-    for p in participantes:
-        clave = (p["nombre"], p.get("email") or "")
-        if clave in vistos:
+    # "Participantes por formulario" -- una fila por asignacion (persona x formulario).
+    # Quien no tiene ningun formulario asignado sale igual, con formulario_id None (es
+    # solo un stakeholder del proyecto).
+    asignaciones = store.formularios_por_participante_bulk()
+    participantes_por_formulario = []
+    for p in stakeholders:
+        fids = asignaciones.get(p["id"], [])
+        if not fids:
+            participantes_por_formulario.append({**p, "formulario_id_resuelto": None, "formulario_nombre": None, "progreso": {"cubiertos": 0, "total": 0}})
             continue
-        vistos.add(clave)
-        stakeholders.append(p)
+        for fid in fids:
+            formulario = settings.formulario_por_id(proyecto, fid)
+            ids_preguntas = {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=fid)}
+            participantes_por_formulario.append({
+                **p,
+                "formulario_id_resuelto": fid,
+                "formulario_nombre": formulario["nombre"] if formulario else fid,
+                "progreso": store.progreso_formulario(p, ids_preguntas),
+            })
+
+    reglas = store.listar_reglas()
+    resumen_temas = store.resumen_por_tema(proyecto, stakeholders)
 
     return templates.TemplateResponse(
         request, "home.html",
         {
-            "proyecto": proyecto, "participantes": participantes, "stakeholders": stakeholders,
+            "proyecto": proyecto, "participantes": participantes_por_formulario, "stakeholders": stakeholders,
             "reglas": reglas, "resumen_temas": resumen_temas, "formularios": proyecto.get("formularios", []),
         },
     )
@@ -101,10 +106,8 @@ def admin_panel(request: Request):
     proyecto = _proyecto()
     participantes = store.listar_participantes()
     for part in participantes:
-        formulario_part = _formulario_de(proyecto, part)
-        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])) if formulario_part else 0
-        part["progreso"] = store.progreso(part, total)
-        part["formulario_nombre"] = formulario_part["nombre"] if formulario_part else "— sin formulario asignado —"
+        ids_preguntas = _ids_preguntas_de_formularios(proyecto, store.formularios_de_participante(part["id"]))
+        part["progreso"] = store.progreso_formulario(part, ids_preguntas)
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(
@@ -194,19 +197,19 @@ async def crear_participante(request: Request):
     nombre = (form.get("nombre") or "").strip()
     cargo = (form.get("cargo") or "").strip()
     email = (form.get("email") or "").strip()
-    formulario_id = (form.get("formulario_id") or "").strip()  # vacio = solo stakeholder, sin formulario
+    formulario_ids = [f.strip() for f in form.getlist("formulario_ids") if f.strip()]  # vacio = solo stakeholder
     if not nombre:
         raise HTTPException(400, "falta el nombre del participante")
-    settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email, formulario_id)
-    store.sembrar_participantes([{"nombre": nombre, "cargo": cargo, "email": email, "formulario_id": formulario_id}])
+    settings.agregar_participante_a_yaml(_proyecto(), nombre, cargo, email, formulario_ids)
+    store.sembrar_participantes([{"nombre": nombre, "cargo": cargo, "email": email, "formulario_ids": formulario_ids}])
     return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/admin/participantes/{pid}/formulario")
 async def reasignar_formulario(request: Request, pid: str):
     form = await request.form()
-    formulario_id = (form.get("formulario_id") or "").strip()  # vacio = pasa a ser solo stakeholder
-    store.actualizar_formulario_participante(pid, formulario_id)
+    formulario_ids = [f.strip() for f in form.getlist("formulario_ids") if f.strip()]  # vacio = pasa a ser solo stakeholder
+    store.asignar_formularios(pid, formulario_ids)
     return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
 
 
@@ -241,7 +244,7 @@ def api_respuestas():
         completo = store.obtener(p["id"])
         data.append({
             "id": p["id"], "nombre": p["nombre"], "cargo": p["cargo"], "email": p["email"],
-            "estado": p["estado"], "formulario_id": p["formulario_id"],
+            "estado": p["estado"], "formulario_ids": store.formularios_de_participante(p["id"]),
             "correcciones_ya_sabemos": completo.get("correcciones_ya_sabemos"),
             "respuestas": store.get_respuestas(completo),
         })
@@ -308,24 +311,27 @@ def ver_participante(request: Request, pid: str):
     if not p:
         raise HTTPException(404, "participante no encontrado")
     proyecto = _proyecto()
-    formulario = _formulario_de(proyecto, p)
+    formulario_ids_asignados = store.formularios_de_participante(pid)
+    formularios_asignados = [
+        f for fid in formulario_ids_asignados if (f := settings.formulario_por_id(proyecto, fid))
+    ]
     respuestas = store.get_respuestas(p)
-    # Solo adjuntos de preguntas de ESTE formulario (o sin pregunta asociada, ej. un
-    # adjunto general) -- antes se mostraban los de cualquier formulario que el
-    # participante hubiera tenido asignado alguna vez.
-    ids_preguntas_formulario = {
-        pr["id"] for t in (formulario.get("temas", []) if formulario else []) for pr in t.get("preguntas", [])
+    # Solo adjuntos de preguntas de los formularios asignados (o sin pregunta asociada,
+    # ej. un adjunto general) -- no de cualquier formulario que el participante hubiera
+    # tenido asignado alguna vez.
+    ids_preguntas_asignadas = {
+        pr["id"] for f in formularios_asignados for t in f.get("temas", []) for pr in t.get("preguntas", [])
     }
     adjuntos = [
         a for a in store.listar_adjuntos(pid)
-        if not a.get("pregunta_id") or a["pregunta_id"] in ids_preguntas_formulario
+        if not a.get("pregunta_id") or a["pregunta_id"] in ids_preguntas_asignadas
     ]
     link = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     return templates.TemplateResponse(
         request, "admin_participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas, "adjuntos": adjuntos, "link": link,
-            "temas": formulario.get("temas", []) if formulario else [], "formulario": formulario,
+            "formularios_asignados": formularios_asignados, "formularios_asignados_ids": formulario_ids_asignados,
             "formularios": proyecto.get("formularios", []),
         },
     )
@@ -385,16 +391,25 @@ async def enviar_aprobacion(request: Request):
 
     proyecto = _proyecto()
     reglas = store.listar_reglas()
-    participantes_lista = store.listar_participantes()
-    for p in participantes_lista:
-        formulario_p = _formulario_de(proyecto, p)
-        p["formulario_nombre"] = formulario_p["nombre"] if formulario_p else "— sin asignar —"
-    participantes_por_id = {p["id"]: p for p in participantes_lista}
-    resumen_temas = store.resumen_por_tema(proyecto, participantes_lista)
+    stakeholders = store.listar_participantes()
+    participantes_por_id = {p["id"]: p for p in stakeholders}
+    resumen_temas = store.resumen_por_tema(proyecto, stakeholders)
+
+    asignaciones = store.formularios_por_participante_bulk()
+    participantes_por_formulario = []
+    for p in stakeholders:
+        fids = asignaciones.get(p["id"], [])
+        if not fids:
+            participantes_por_formulario.append({**p, "formulario_nombre": "— sin asignar —"})
+            continue
+        for fid in fids:
+            formulario = settings.formulario_por_id(proyecto, fid)
+            participantes_por_formulario.append({**p, "formulario_nombre": formulario["nombre"] if formulario else fid})
 
     documento = render.documento_aprobacion(
         proyecto, reglas, participantes_por_id,
-        secciones=secciones, participantes=participantes_lista, resumen_temas=resumen_temas,
+        secciones=secciones, stakeholders=stakeholders,
+        participantes_por_formulario=participantes_por_formulario, resumen_temas=resumen_temas,
     )
     ok, error = formato_empresa.enviar_para_aprobacion(
         markdown_text=documento,
@@ -420,18 +435,21 @@ def relevar(request: Request, token: str, formulario: str | None = None):
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
-    formulario_actual = _formulario_de(proyecto, p, formulario)
+    if not formulario:
+        # Sin pedir un formulario puntual, siempre entra primero al panel -- ahi ve la
+        # tabla "Tus formularios" y elige cual completar. Landing uniforme para todos,
+        # sin importar cuantos formularios tenga asignados (antes dependia de eso).
+        return RedirectResponse(url=f"/r/{token}/panel", status_code=303)
+    formulario_actual = _formulario_de(proyecto, formulario)
     if not formulario_actual:
-        # Stakeholder sin formulario asignado y sin pedir uno puntual -- no hay nada que
-        # completar, lo mandamos al panel (ahi puede elegir uno si el proyecto tiene).
         return RedirectResponse(url=f"/r/{token}/panel", status_code=303)
     respuestas = store.get_respuestas(p)
-    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=formulario_actual["id"]))
+    ids_preguntas = {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=formulario_actual["id"])}
     return templates.TemplateResponse(
         request, "participante.html",
         {
             "p": p, "proyecto": proyecto, "respuestas": respuestas,
-            "progreso": store.progreso(p, total_preguntas),
+            "progreso": store.progreso_formulario(p, ids_preguntas),
             "temas": formulario_actual.get("temas", []), "formulario": formulario_actual,
             "formularios": proyecto.get("formularios", []),
         },
@@ -453,10 +471,10 @@ async def guardar_respuesta(request: Request, token: str):
     store.guardar_respuesta(p["id"], pregunta_id, valor, fuente=body.get("fuente", "texto"))
     p_actualizado = store.obtener(p["id"])
     # El progreso se calcula sobre el formulario AL QUE PERTENECE la pregunta que se
-    # acaba de responder (puede no ser el default del participante, si esta viendo otro
-    # formulario del proyecto via ?formulario=).
-    total_preguntas = len(settings.preguntas_planas(proyecto, formulario_id=pregunta["formulario_id"]))
-    return JSONResponse({"ok": True, "progreso": store.progreso(p_actualizado, total_preguntas)})
+    # acaba de responder (puede no ser uno de los asignados por default, si esta viendo
+    # otro formulario del proyecto via ?formulario=).
+    ids_preguntas = {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=pregunta["formulario_id"])}
+    return JSONResponse({"ok": True, "progreso": store.progreso_formulario(p_actualizado, ids_preguntas)})
 
 
 @app.post("/r/{token}/correcciones")
@@ -503,12 +521,22 @@ def panel_participante(request: Request, token: str):
     if not p:
         raise HTTPException(404, "Este link no es válido.")
     proyecto = _proyecto()
+    ids_asignados = set(store.formularios_de_participante(p["id"]))
+    p["formularios_asignados"] = ids_asignados
+    # Tabla "Tus formularios": TODOS los del proyecto (no solo los asignados por
+    # default), marcando cual es cual -- cualquier participante puede completar
+    # cualquier formulario del proyecto desde su mismo link, no solo el suyo.
+    p["mis_formularios"] = []
+    for formulario in proyecto.get("formularios", []):
+        ids_preguntas = {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=formulario["id"])}
+        p["mis_formularios"].append({
+            "id": formulario["id"], "nombre": formulario["nombre"], "asignado": formulario["id"] in ids_asignados,
+            "progreso": store.progreso_formulario(p, ids_preguntas),
+        })
     participantes = store.listar_participantes()
     for part in participantes:
-        formulario_part = _formulario_de(proyecto, part)
-        total = len(settings.preguntas_planas(proyecto, formulario_id=formulario_part["id"])) if formulario_part else 0
-        part["progreso"] = store.progreso(part, total)
-        part["formulario_nombre"] = formulario_part["nombre"] if formulario_part else "— sin formulario asignado —"
+        ids_preguntas = _ids_preguntas_de_formularios(proyecto, store.formularios_de_participante(part["id"]))
+        part["progreso"] = store.progreso_formulario(part, ids_preguntas)
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(

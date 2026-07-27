@@ -106,29 +106,22 @@
     </div>
     {% if p %}
     <p class="muted" style="margin:0 0 14px;">Complete las preguntas de su formulario a su ritmo — se guardan solas, puede volver cuando quiera y grabar sus respuestas en voz si prefiere. Acá abajo ve el avance de todo el proyecto.</p>
-    {% if proyecto.formularios | length > 1 %}
-      <p class="muted" style="margin:0 0 8px;font-weight:600;">Formularios de este proyecto — se puede completar cualquiera desde este mismo link:</p>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <select id="selector-formulario" style="min-width:240px;">
-          {% for f in proyecto.formularios %}
-          <option value="{{ f.id }}" {% if f.id == p.formulario_id %}selected{% endif %}>{{ f.nombre }}{% if f.id == p.formulario_id %} (el mío){% endif %}</option>
-          {% endfor %}
-        </select>
-        <a class="btn" id="btn-ir-formulario" href="/r/{{ p.token }}">Ir →</a>
-      </div>
-      <script>
-        (function () {
-          const sel = document.getElementById("selector-formulario");
-          const btn = document.getElementById("btn-ir-formulario");
-          function actualizar() { btn.href = "/r/{{ p.token }}?formulario=" + sel.value; }
-          sel.addEventListener("change", () => { actualizar(); btn.click(); });
-          actualizar();
-        })();
-      </script>
-    {% elif p.formulario_id %}
-      <a class="btn" href="/r/{{ p.token }}">Ir a mi formulario →</a>
+    {% if p.mis_formularios %}
+      <table>
+        <tr><th>Formulario</th><th style="width:170px;">Avance</th><th></th></tr>
+        {% for f in p.mis_formularios %}
+        <tr>
+          <td>{{ f.nombre }}{% if f.asignado %} <span class="muted">(asignado)</span>{% endif %}</td>
+          <td>
+            <div class="progreso-barra"><div style="width: {{ (f.progreso.cubiertos / f.progreso.total * 100) if f.progreso.total else 0 }}%;"></div></div>
+            <span class="muted">{{ f.progreso.cubiertos }}/{{ f.progreso.total }}</span>
+          </td>
+          <td><a class="btn secundario" style="padding:6px 12px;font-size:13px;white-space:nowrap;" href="/r/{{ p.token }}?formulario={{ f.id }}">Completar →</a></td>
+        </tr>
+        {% endfor %}
+      </table>
     {% else %}
-      <p class="muted" style="margin:0;">No tiene un formulario asignado todavía — es un contacto del proyecto. Si corresponde que complete uno, pídanselo a quien coordina el discovery.</p>
+      <p class="muted" style="margin:0;">No tiene ningún formulario asignado todavía — es un contacto del proyecto. Si corresponde que complete uno, pídanselo a quien coordina el discovery.</p>
     {% endif %}
     {% else %}
     <p class="muted" style="margin:0;">Vista de administrador — así ven este panel general los participantes del proyecto (sin login, cada uno lo abre desde su link personal).</p>

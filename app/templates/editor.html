@@ -80,13 +80,12 @@
       <input type="text" name="nombre" placeholder="Nombre y apellido" required>
       <input type="text" name="cargo" placeholder="Cargo (opcional)">
       <input type="email" name="email" placeholder="Correo (opcional)">
-      <label class="muted" style="font-size:12px;">Formulario asignado</label>
-      <select name="formulario_id">
-        <option value="">— Sin formulario, solo stakeholder —</option>
+      <label class="muted" style="font-size:12px;">Formularios asignados (opcional, se puede elegir más de uno)</label>
+      <div style="display:flex;flex-direction:column;gap:2px;">
         {% for formulario in formularios %}
-        <option value="{{ formulario.id }}">{{ formulario.nombre }}</option>
+        <label style="font-weight:400;display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" name="formulario_ids" value="{{ formulario.id }}"> {{ formulario.nombre }}</label>
         {% endfor %}
-      </select>
+      </div>
       <button class="btn secundario" type="submit" style="align-self:flex-start;">Agregar participante</button>
     </form>
     <p class="muted" style="margin-top:10px;">Genera su link personal al instante — se va a ver en el Dashboard.</p>

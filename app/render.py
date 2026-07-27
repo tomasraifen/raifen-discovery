@@ -15,7 +15,8 @@ def documento_aprobacion(
     participantes_por_id: dict[str, dict],
     *,
     secciones: set[str],
-    participantes: list[dict] | None = None,
+    stakeholders: list[dict] | None = None,
+    participantes_por_formulario: list[dict] | None = None,
     resumen_temas: list[dict] | None = None,
 ) -> str:
     lineas: list[str] = []
@@ -23,27 +24,18 @@ def documento_aprobacion(
     if "lo_que_sabemos" in secciones and (proyecto.get("lo_que_ya_sabemos") or "").strip():
         lineas += ["# Lo que ya sabemos del negocio", "", proyecto["lo_que_ya_sabemos"].strip()]
 
-    if "stakeholders" in secciones and participantes:
-        # Matriz de PERSONAS unica -- una persona asignada a mas de un formulario tiene
-        # varias filas en `participantes` (una por asignacion), pero aca se dedupea por
-        # nombre+correo para que la lista de stakeholders no la repita.
-        vistos = set()
-        unicos = []
-        for p in participantes:
-            clave = (p["nombre"], p.get("email") or "")
-            if clave in vistos:
-                continue
-            vistos.add(clave)
-            unicos.append(p)
+    if "stakeholders" in secciones and stakeholders:
+        # Matriz de PERSONAS unica -- una por persona, sin importar a cuantos
+        # formularios este asignada (eso va en "Participantes por formulario").
         lineas += ["", "# Stakeholders", "", "| Nombre | Cargo | Correo |", "|---|---|---|"]
-        for p in unicos:
+        for p in stakeholders:
             lineas.append(f"| {p['nombre']} | {p.get('cargo') or '—'} | {p.get('email') or '—'} |")
 
-    if "participantes" in secciones and participantes:
+    if "participantes" in secciones and participantes_por_formulario:
         # Una fila por asignacion a formulario -- puede repetir a la misma persona si
         # completa mas de uno. Complementa a "Stakeholders", no lo reemplaza.
         lineas += ["", "# Participantes por formulario", "", "| Nombre | Cargo | Correo | Formulario | Estado |", "|---|---|---|---|---|"]
-        for p in participantes:
+        for p in participantes_por_formulario:
             lineas.append(
                 f"| {p['nombre']} | {p.get('cargo') or '—'} | {p.get('email') or '—'} | "
                 f"{p.get('formulario_nombre') or '—'} | {p['estado']} |"
