@@ -125,17 +125,29 @@
       <form method="post" action="/admin/sembrar"><button class="btn" type="submit">Sembrar participantes</button></form>
     {% else %}
       <table>
-        <tr><th>Nombre</th><th>Cargo</th><th>Correo</th></tr>
+        <tr><th>Nombre</th><th>Cargo</th><th>Correo</th><th>Link personal</th><th></th></tr>
         {% for s in stakeholders %}
         <tr>
           <td>{{ s.nombre }}</td>
           <td>{{ s.cargo or "—" }}</td>
           <td class="muted">{{ s.email or "—" }}</td>
+          <td class="muted" style="font-size:12px;word-break:break-all;max-width:280px;">{{ s.link }}</td>
+          <td style="white-space:nowrap;"><button type="button" class="icon-btn" style="padding:5px 10px;font-size:12px;" onclick="copiarLink(this, '{{ s.link }}')">📋 Copiar</button></td>
         </tr>
         {% endfor %}
       </table>
     {% endif %}
   </div>
+
+  <script>
+    function copiarLink(btn, link) {
+      navigator.clipboard.writeText(link).then(() => {
+        const original = btn.textContent;
+        btn.textContent = "✓ Copiado";
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      });
+    }
+  </script>
 
   <div class="card">
     <h2 style="margin-top:0;">Participantes por formulario</h2>

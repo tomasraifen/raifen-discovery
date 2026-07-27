@@ -392,6 +392,8 @@ async def enviar_aprobacion(request: Request):
     proyecto = _proyecto()
     reglas = store.listar_reglas()
     stakeholders = store.listar_participantes()
+    for p in stakeholders:
+        p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     participantes_por_id = {p["id"]: p for p in stakeholders}
     resumen_temas = store.resumen_por_tema(proyecto, stakeholders)
 

@@ -26,10 +26,12 @@ def documento_aprobacion(
 
     if "stakeholders" in secciones and stakeholders:
         # Matriz de PERSONAS unica -- una por persona, sin importar a cuantos
-        # formularios este asignada (eso va en "Participantes por formulario").
-        lineas += ["", "# Stakeholders", "", "| Nombre | Cargo | Correo |", "|---|---|---|"]
+        # formularios este asignada (eso va en "Participantes por formulario"). Incluye
+        # el link personal de cada uno -- pedido explicito de Tom, para poder copiar la
+        # tabla del documento y mandarle a cada quien su link sin volver al panel.
+        lineas += ["", "# Stakeholders", "", "| Nombre | Cargo | Correo | Link personal |", "|---|---|---|---|"]
         for p in stakeholders:
-            lineas.append(f"| {p['nombre']} | {p.get('cargo') or '—'} | {p.get('email') or '—'} |")
+            lineas.append(f"| {p['nombre']} | {p.get('cargo') or '—'} | {p.get('email') or '—'} | {p.get('link') or '—'} |")
 
     if "participantes" in secciones and participantes_por_formulario:
         # Una fila por asignacion a formulario -- puede repetir a la misma persona si
