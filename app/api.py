@@ -131,6 +131,19 @@ async def actualizar_lo_que_sabemos(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/admin/proyecto")
+async def actualizar_proyecto(request: Request):
+    form = await request.form()
+    cliente = (form.get("cliente") or "").strip()
+    nombre_proyecto = (form.get("proyecto") or "").strip()
+    vertical = (form.get("vertical") or "").strip()
+    correo_aprobacion = (form.get("correo_aprobacion") or "").strip()
+    if not cliente:
+        raise HTTPException(400, "falta el nombre del cliente")
+    settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical, correo_aprobacion)
+    return RedirectResponse(url="/", status_code=303)
+
+
 # ---------- Editor de formularios, temas, preguntas y participantes ----------
 
 @app.post("/admin/formularios")
@@ -194,6 +207,18 @@ async def reasignar_formulario(request: Request, pid: str):
     form = await request.form()
     formulario_id = (form.get("formulario_id") or "").strip()  # vacio = pasa a ser solo stakeholder
     store.actualizar_formulario_participante(pid, formulario_id)
+    return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
+
+
+@app.post("/admin/participantes/{pid}/datos")
+async def actualizar_datos_participante(request: Request, pid: str):
+    form = await request.form()
+    nombre = (form.get("nombre") or "").strip()
+    cargo = (form.get("cargo") or "").strip()
+    email = (form.get("email") or "").strip()
+    if not nombre:
+        raise HTTPException(400, "falta el nombre del participante")
+    store.actualizar_datos_participante(pid, nombre, cargo, email)
     return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
 
 

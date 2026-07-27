@@ -6,6 +6,15 @@
     <h1 style="margin:0 0 4px;">{{ p.nombre }}</h1>
     <p class="muted" style="margin:0;">{{ p.cargo or "—" }} · {{ p.email or "sin email" }} · <span class="pill {{ p.estado }}">{{ p.estado }}</span></p>
     <p class="muted">Link personal: <a href="{{ link }}" target="_blank">{{ link }}</a></p>
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer;font-size:12.5px;color:var(--mint);">✎ Editar nombre/cargo/correo</summary>
+      <form method="post" action="/admin/participantes/{{ p.id }}/datos" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+        <div><label class="muted" style="display:block;font-size:12px;">Nombre</label><input type="text" name="nombre" value="{{ p.nombre }}" required></div>
+        <div><label class="muted" style="display:block;font-size:12px;">Cargo</label><input type="text" name="cargo" value="{{ p.cargo or '' }}"></div>
+        <div><label class="muted" style="display:block;font-size:12px;">Correo</label><input type="email" name="email" value="{{ p.email or '' }}"></div>
+        <button class="btn secundario" style="padding:6px 10px;font-size:12.5px;" type="submit">Guardar</button>
+      </form>
+    </details>
     <form method="post" action="/admin/participantes/{{ p.id }}/formulario" style="margin-top:10px;display:flex;gap:6px;align-items:center;">
       <label class="muted" style="font-size:12.5px;">Formulario asignado (por default, al abrir su link sin elegir uno):</label>
       <select name="formulario_id" onchange="this.form.submit()">

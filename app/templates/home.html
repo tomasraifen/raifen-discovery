@@ -9,6 +9,7 @@
         <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn secundario" onclick="abrirModal('modal-editar-proyecto')">✎ Editar datos del proyecto</button>
         <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">👁️ Ver como usuario</a>
         <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ Cómo funciona esto</button>
       </div>
@@ -25,6 +26,24 @@
         <div class="paso"><b>3. Curar</b>Con las respuestas, armar reglas de negocio abajo y confirmarlas.</div>
         <div class="paso"><b>4. Revisar</b>El documento se manda a Raifen para revisión — nunca directo al cliente.</div>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-editar-proyecto">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-editar-proyecto')">✕</button>
+      <h2>Editar datos del proyecto</h2>
+      <form method="post" action="/admin/proyecto" style="display:flex;flex-direction:column;gap:12px;">
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label><input type="text" name="cliente" value="{{ proyecto.cliente }}" style="width:100%;" required></div>
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Proyecto</label><input type="text" name="proyecto" value="{{ proyecto.proyecto or '' }}" style="width:100%;"></div>
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Vertical</label><input type="text" name="vertical" value="{{ proyecto.vertical or '' }}" style="width:100%;"></div>
+        <div>
+          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Correo de aprobación del cliente</label>
+          <input type="email" name="correo_aprobacion" value="{{ proyecto.correo_aprobacion or '' }}" style="width:100%;">
+          <p class="muted" style="margin:4px 0 0;">Solo queda como referencia dentro del documento de revisión — nunca es destinatario real del envío.</p>
+        </div>
+        <div><button class="btn secundario" type="submit">Guardar</button></div>
+      </form>
     </div>
   </div>
 

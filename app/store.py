@@ -115,6 +115,14 @@ def actualizar_formulario_participante(pid: str, formulario_id: str):
         c.execute("UPDATE participantes SET formulario_id = ? WHERE id = ?", (formulario_id, pid))
 
 
+def actualizar_datos_participante(pid: str, nombre: str, cargo: str, email: str):
+    with _conn() as c:
+        c.execute(
+            "UPDATE participantes SET nombre = ?, cargo = ?, email = ? WHERE id = ?",
+            (nombre, cargo or None, email or None, pid),
+        )
+
+
 def obtener(pid: str) -> dict | None:
     with _conn() as c:
         row = c.execute("SELECT * FROM participantes WHERE id = ?", (pid,)).fetchone()

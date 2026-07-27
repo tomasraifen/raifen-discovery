@@ -284,3 +284,12 @@ def actualizar_lo_que_sabemos(proyecto: dict, texto: str) -> dict:
     proyecto["lo_que_ya_sabemos"] = texto
     guardar_proyecto(proyecto)
     return proyecto
+
+
+def actualizar_datos_proyecto(proyecto: dict, cliente: str, nombre_proyecto: str, vertical: str, correo_aprobacion: str) -> dict:
+    proyecto["cliente"] = cliente
+    proyecto["proyecto"] = nombre_proyecto
+    proyecto["vertical"] = vertical
+    proyecto["correo_aprobacion"] = correo_aprobacion
+    guardar_proyecto(proyecto)
+    return proyecto
