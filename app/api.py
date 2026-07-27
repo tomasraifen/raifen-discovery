@@ -57,6 +57,22 @@ def _ids_preguntas_de_formularios(proyecto: dict, formulario_ids: list[str]) -> 
     return ids
 
 
+def _participantes_con_progreso(proyecto: dict) -> list[dict]:
+    """Para las tablas "Quienes participan" (panel de admin y de cada participante):
+    progreso agregado de cada persona + la lista de sus formularios asignados (para el
+    dropdown de "ir directo a lo que le toca a X")."""
+    participantes = store.listar_participantes()
+    for part in participantes:
+        ids_asignados = store.formularios_de_participante(part["id"])
+        part["formularios_asignados_lista"] = [
+            {"id": fid, "nombre": (settings.formulario_por_id(proyecto, fid) or {}).get("nombre", fid)}
+            for fid in ids_asignados
+        ]
+        ids_preguntas = _ids_preguntas_de_formularios(proyecto, ids_asignados)
+        part["progreso"] = store.progreso_formulario(part, ids_preguntas)
+    return participantes
+
+
 # ---------- Admin ----------
 
 @app.get("/", response_class=HTMLResponse)
@@ -104,10 +120,7 @@ def admin_panel(request: Request):
     participante -- sin atarse al token de uno puntual (a diferencia de
     /r/<token>/panel, que sí es el de una persona real)."""
     proyecto = _proyecto()
-    participantes = store.listar_participantes()
-    for part in participantes:
-        ids_preguntas = _ids_preguntas_de_formularios(proyecto, store.formularios_de_participante(part["id"]))
-        part["progreso"] = store.progreso_formulario(part, ids_preguntas)
+    participantes = _participantes_con_progreso(proyecto)
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(
@@ -535,10 +548,7 @@ def panel_participante(request: Request, token: str):
             "id": formulario["id"], "nombre": formulario["nombre"], "asignado": formulario["id"] in ids_asignados,
             "progreso": store.progreso_formulario(p, ids_preguntas),
         })
-    participantes = store.listar_participantes()
-    for part in participantes:
-        ids_preguntas = _ids_preguntas_de_formularios(proyecto, store.formularios_de_participante(part["id"]))
-        part["progreso"] = store.progreso_formulario(part, ids_preguntas)
+    participantes = _participantes_con_progreso(proyecto)
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
     reglas_confirmadas = [r for r in store.listar_reglas() if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]
     return templates.TemplateResponse(

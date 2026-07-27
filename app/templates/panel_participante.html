@@ -73,6 +73,7 @@
     .muted { color: var(--muted); font-size: 13px; }
     .btn { display: inline-block; background: var(--mint); color: #fff; padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; border: none; cursor: pointer; font-family: var(--font-body); }
     .btn.secundario { background: transparent; color: var(--mint); border: 1px solid var(--mint); }
+    .btn.violeta { background: var(--violeta); }
     .modal-fondo {
       display: none; position: fixed; inset: 0; background: rgba(0,10,31,.6); z-index: 200;
       align-items: center; justify-content: center; padding: 20px;
@@ -102,7 +103,7 @@
   <div class="card">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
       <h1 style="margin:0 0 4px;">{{ proyecto.proyecto }}</h1>
-      <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ ¿Cómo funciona esto?</button>
+      <button type="button" class="btn violeta" onclick="abrirModal('modal-instrucciones')">Instructivo</button>
     </div>
     {% if p %}
     <p class="muted" style="margin:0 0 14px;">Complete las preguntas de su formulario a su ritmo — se guardan solas, puede volver cuando quiera y grabar sus respuestas en voz si prefiere. Acá abajo ve el avance de todo el proyecto.</p>
@@ -150,7 +151,7 @@
     <div class="card">
       <h2 style="margin-top:0;">Quiénes participan</h2>
       <table>
-        <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th style="width:110px;">Avance</th></tr>
+        <tr><th>Nombre</th><th>Cargo</th><th>Estado</th><th style="width:110px;">Avance</th><th style="width:200px;">Formularios</th></tr>
         {% for part in participantes %}
         <tr>
           <td>{{ part.nombre }}{% if p and part.id == p.id %} <span class="muted">(usted)</span>{% endif %}</td>
@@ -158,6 +159,18 @@
           <td><span class="pill {{ part.estado }}">{{ part.estado }}</span></td>
           <td>
             <div class="progreso-barra"><div style="width: {{ (part.progreso.cubiertos / part.progreso.total * 100) if part.progreso.total else 0 }}%;"></div></div>
+          </td>
+          <td>
+            {% if part.formularios_asignados_lista %}
+            <select onchange="if(this.value) window.open('/r/{{ part.token }}?formulario=' + this.value, '_blank'); this.selectedIndex = 0;">
+              <option value="">Ir a...</option>
+              {% for f in part.formularios_asignados_lista %}
+              <option value="{{ f.id }}">{{ f.nombre }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <span class="muted">— sin formulario —</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
