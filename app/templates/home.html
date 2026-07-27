@@ -9,23 +9,23 @@
 
   <div class="card">
     <h2 style="margin-top:0;">Panel de administración</h2>
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      <div>
-        <p class="muted" style="margin:0 0 6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">General</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+        <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">General</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" class="btn secundario" onclick="abrirModal('modal-editar-proyecto')">Proyecto</button>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-participante')">Participantes</button>
         </div>
       </div>
-      <div>
-        <p class="muted" style="margin:0 0 6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Contenido</p>
+      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+        <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Contenido</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <a class="btn secundario" href="/admin/editor">Formularios</a>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-regla')">Reglas negocio</button>
         </div>
       </div>
-      <div>
-        <p class="muted" style="margin:0 0 6px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Útiles</p>
+      <div style="flex:1;min-width:260px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+        <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Útiles</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" class="btn secundario" onclick="abrirModal('modal-enviar')">Informe</button>
           <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">Vista usuario</a>
