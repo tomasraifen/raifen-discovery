@@ -80,12 +80,20 @@ def init_db():
 
 def sembrar_participantes(participantes: list[dict]) -> list[dict]:
     """Crea en la DB los participantes definidos en config/proyecto.yaml que todavia no
-    existen (match por email). Idempotente: correr de nuevo no duplica a quien ya esta."""
+    existen. Corre en CADA arranque del contenedor (ver Dockerfile: `init-db` antes de
+    `serve`), no solo la primera vez -- tiene que ser idempotente si o si. Match por
+    email cuando hay; si el email viene vacio (comun en datos de prueba armados a mano)
+    se matchea por nombre, para no duplicar en cada redeploy."""
     creados = []
     with _conn() as c:
-        existentes = {r["email"] for r in c.execute("SELECT email FROM participantes").fetchall() if r["email"]}
+        filas = c.execute("SELECT nombre, email FROM participantes").fetchall()
+        emails_existentes = {r["email"] for r in filas if r["email"]}
+        nombres_existentes = {r["nombre"] for r in filas}
         for p in participantes:
-            if p.get("email") and p["email"] in existentes:
+            email = p.get("email")
+            if email and email in emails_existentes:
+                continue
+            if not email and p["nombre"] in nombres_existentes:
                 continue
             pid = str(uuid.uuid4())
             token = secrets.token_urlsafe(28)
