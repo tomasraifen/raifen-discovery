@@ -1,18 +1,22 @@
 {% extends "_base.html" %}
 {% block title %}{{ proyecto.cliente }} — Discovery{% endblock %}
-{% block nav %}<a class="cta" href="/admin/editor">✎ Preguntas y temas</a>{% endblock %}
+{% block nav %}{% endblock %}
 {% block content %}
   <div class="card">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <div>
-        <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
-        <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button type="button" class="btn secundario" onclick="abrirModal('modal-editar-proyecto')">✎ Editar datos del proyecto</button>
-        <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">👁️ Ver como usuario</a>
-        <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">❓ Cómo funciona esto</button>
-      </div>
+    <h1 style="margin:0 0 4px;">{{ proyecto.cliente }}</h1>
+    <p class="muted" style="margin:0;">{{ proyecto.proyecto }} · vertical: {{ proyecto.vertical }}</p>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Panel de administración</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="btn secundario" href="/admin/editor">Preguntas y temas</a>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-editar-proyecto')">Editar proyecto</button>
+      <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">Ver como usuario</a>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">Instructivo</button>
+      <button type="button" class="btn violeta" onclick="abrirModal('modal-enviar')">Enviar documento</button>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-regla')">Agregar regla</button>
+      <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-participante')">Agregar participante</button>
     </div>
   </div>
 
@@ -43,6 +47,60 @@
           <p class="muted" style="margin:4px 0 0;">Solo queda como referencia dentro del documento de revisión — nunca es destinatario real del envío.</p>
         </div>
         <div><button class="btn secundario" type="submit">Guardar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-enviar">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-enviar')">✕</button>
+      <h2>Armar documento de revisión</h2>
+      <p class="muted" style="margin:0 0 16px;">El destinatario final del cliente ({{ proyecto.correo_aprobacion }}) nunca lo recibe directo — queda solo anotado como referencia dentro del documento.</p>
+      <form method="post" action="/admin/aprobacion/enviar">
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Enviar a</label>
+        <input type="email" name="correo" value="{{ admin_review_email }}" style="width:100%;margin-bottom:16px;" required>
+
+        <label class="muted" style="display:block;font-size:12px;margin-bottom:6px;">Secciones a incluir</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_lo_que_sabemos" checked> Lo que ya sabemos del negocio</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_stakeholders" checked> Stakeholders (matriz única de personas: nombre, cargo, correo — sin duplicados)</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_participantes" checked> Participantes por formulario (una fila por asignación — repite a la persona si completa más de uno)</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_progreso" checked> Progreso de respuestas por área</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_reglas" checked> Reglas de negocio confirmadas</label>
+        </div>
+        <button class="btn violeta" type="submit">Enviar</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-agregar-regla">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-agregar-regla')">✕</button>
+      <h2>Agregar regla de negocio</h2>
+      <form method="post" action="/admin/reglas">
+        <textarea name="texto" rows="2" style="width:100%;" placeholder="Ej: una venta se considera válida cuando..." required></textarea>
+        <div style="margin-top:8px;"><button class="btn secundario" type="submit">Agregar</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-fondo" id="modal-agregar-participante">
+    <div class="modal-caja">
+      <button class="cerrar" onclick="cerrarModal('modal-agregar-participante')">✕</button>
+      <h2>Agregar participante nuevo</h2>
+      <form method="post" action="/admin/participantes" style="display:flex;flex-direction:column;gap:12px;">
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Nombre</label><input type="text" name="nombre" style="width:100%;" required></div>
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Cargo</label><input type="text" name="cargo" style="width:100%;"></div>
+        <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Correo</label><input type="email" name="email" style="width:100%;"></div>
+        <div>
+          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Formularios (opcional, se puede elegir más de uno)</label>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            {% for formulario in formularios %}
+            <label style="font-weight:400;display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" name="formulario_ids" value="{{ formulario.id }}"> {{ formulario.nombre }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div><button class="btn secundario" type="submit">Agregar</button></div>
       </form>
     </div>
   </div>
@@ -182,32 +240,10 @@
       </table>
       <p class="muted" style="margin-top:10px;">"formulario" va directo a lo que esa persona tiene asignado — sin login de admin, la seguridad es el link personal. El panel general de cualquier participante se ve con "Ver como usuario", arriba.</p>
     {% endif %}
-
-    <details style="margin-top:16px;">
-      <summary style="cursor:pointer;font-weight:700;color:var(--mint);font-family:var(--font-heading);font-size:14.5px;">+ Agregar participante nuevo</summary>
-      <form method="post" action="/admin/participantes" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
-        <div><label class="muted" style="display:block;font-size:12px;">Nombre</label><input type="text" name="nombre" required></div>
-        <div><label class="muted" style="display:block;font-size:12px;">Cargo</label><input type="text" name="cargo"></div>
-        <div><label class="muted" style="display:block;font-size:12px;">Correo</label><input type="email" name="email"></div>
-        <div>
-          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Formularios (opcional, se puede elegir más de uno)</label>
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            {% for formulario in formularios %}
-            <label style="font-weight:400;display:flex;align-items:center;gap:6px;font-size:13.5px;"><input type="checkbox" name="formulario_ids" value="{{ formulario.id }}"> {{ formulario.nombre }}</label>
-            {% endfor %}
-          </div>
-        </div>
-        <button class="btn secundario" type="submit">Agregar</button>
-      </form>
-    </details>
   </div>
 
   <div class="card">
     <h2 style="margin-top:0;">Curaduría — reglas de negocio</h2>
-    <form method="post" action="/admin/reglas" style="margin-bottom:16px;">
-      <textarea name="texto" rows="2" style="width:100%;" placeholder="Ej: una venta se considera válida cuando..."></textarea>
-      <div style="margin-top:8px;"><button class="btn secundario" type="submit">Agregar regla</button></div>
-    </form>
     {% if not reglas %}
       <p class="muted">Sin reglas de negocio todavía — se arman a partir de lo que respondan los participantes.</p>
     {% else %}
@@ -231,30 +267,5 @@
         {% endfor %}
       </table>
     {% endif %}
-    <div style="margin-top:16px;">
-      <button type="button" class="btn violeta" onclick="abrirModal('modal-enviar')">📤 Enviar documento para revisión</button>
-      <p class="muted" style="margin:6px 0 0;">Elegí qué secciones incluir y a quién se lo mandás — el destinatario final del cliente ({{ proyecto.correo_aprobacion }}) nunca lo recibe directo, queda solo anotado como referencia dentro del documento.</p>
-    </div>
-  </div>
-
-  <div class="modal-fondo" id="modal-enviar">
-    <div class="modal-caja">
-      <button class="cerrar" onclick="cerrarModal('modal-enviar')">✕</button>
-      <h2>Armar documento de revisión</h2>
-      <form method="post" action="/admin/aprobacion/enviar">
-        <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Enviar a</label>
-        <input type="email" name="correo" value="{{ admin_review_email }}" style="width:100%;margin-bottom:16px;" required>
-
-        <label class="muted" style="display:block;font-size:12px;margin-bottom:6px;">Secciones a incluir</label>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_lo_que_sabemos" checked> Lo que ya sabemos del negocio</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_stakeholders" checked> Stakeholders (matriz única de personas: nombre, cargo, correo — sin duplicados)</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_participantes" checked> Participantes por formulario (una fila por asignación — repite a la persona si completa más de uno)</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_progreso" checked> Progreso de respuestas por área</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_reglas" checked> Reglas de negocio confirmadas</label>
-        </div>
-        <button class="btn violeta" type="submit">Enviar</button>
-      </form>
-    </div>
   </div>
 {% endblock %}
