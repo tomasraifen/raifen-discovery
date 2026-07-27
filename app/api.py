@@ -71,11 +71,24 @@ def home(request: Request):
         p["link"] = f"{settings.PUBLIC_BASE_URL}/r/{p['token']}"
     reglas = store.listar_reglas()
     resumen_temas = store.resumen_por_tema(proyecto, participantes)
+
+    # Matriz de PERSONAS unica -- si alguien esta asignado a mas de un formulario tiene
+    # varias filas en `participantes` (una por asignacion); acá se dedupea por
+    # nombre+correo para el listado de stakeholders reales del proyecto.
+    vistos = set()
+    stakeholders = []
+    for p in participantes:
+        clave = (p["nombre"], p.get("email") or "")
+        if clave in vistos:
+            continue
+        vistos.add(clave)
+        stakeholders.append(p)
+
     return templates.TemplateResponse(
         request, "home.html",
         {
-            "proyecto": proyecto, "participantes": participantes, "reglas": reglas,
-            "resumen_temas": resumen_temas, "formularios": proyecto.get("formularios", []),
+            "proyecto": proyecto, "participantes": participantes, "stakeholders": stakeholders,
+            "reglas": reglas, "resumen_temas": resumen_temas, "formularios": proyecto.get("formularios", []),
         },
     )
 

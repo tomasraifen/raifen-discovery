@@ -99,10 +99,30 @@
   </script>
 
   <div class="card">
-    <h2 style="margin-top:0;">Participantes (stakeholders)</h2>
-    {% if not participantes %}
+    <h2 style="margin-top:0;">Stakeholders</h2>
+    <p class="muted" style="margin:0 0 10px;">Matriz única de personas del proyecto — cada una aparece una sola vez, aunque esté asignada a más de un formulario (para eso está la tabla de abajo).</p>
+    {% if not stakeholders %}
       <p class="muted">Todavía no se sembraron los participantes de <code>config/proyecto.yaml</code>.</p>
       <form method="post" action="/admin/sembrar"><button class="btn" type="submit">Sembrar participantes</button></form>
+    {% else %}
+      <table>
+        <tr><th>Nombre</th><th>Cargo</th><th>Correo</th></tr>
+        {% for s in stakeholders %}
+        <tr>
+          <td>{{ s.nombre }}</td>
+          <td>{{ s.cargo or "—" }}</td>
+          <td class="muted">{{ s.email or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0;">Participantes por formulario</h2>
+    <p class="muted" style="margin:0 0 10px;">Una fila por asignación a formulario — repite a la persona si completa más de uno.</p>
+    {% if not participantes %}
+      <p class="muted">Todavía no se sembraron los participantes de <code>config/proyecto.yaml</code>.</p>
     {% else %}
       <table>
         <tr><th>Nombre</th><th>Cargo</th><th>Correo</th><th>Formulario</th><th>Estado</th><th>Progreso</th><th></th></tr>
