@@ -161,6 +161,9 @@
             <a class="btn secundario" style="padding:5px 10px;font-size:12.5px;" href="{{ p.link }}" target="_blank" rel="noopener">formulario ↗</a>
             {% endif %}
             <a href="/admin/participantes/{{ p.id }}" style="margin-left:8px;">respuestas →</a>
+            <form method="post" action="/admin/participantes/{{ p.id }}/eliminar" style="display:inline;" onsubmit="return confirm('¿Borrar a {{ p.nombre }} ({{ p.formulario_nombre or "sin formulario" }})? Esta acción no se puede deshacer.');">
+              <button type="submit" class="icon-btn" style="margin-left:8px;color:#c0392b;" title="Borrar este participante">🗑️</button>
+            </form>
           </td>
         </tr>
         {% endfor %}

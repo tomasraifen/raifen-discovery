@@ -222,6 +222,12 @@ async def actualizar_datos_participante(request: Request, pid: str):
     return RedirectResponse(url=f"/admin/participantes/{pid}", status_code=303)
 
 
+@app.post("/admin/participantes/{pid}/eliminar")
+def eliminar_participante(pid: str):
+    store.eliminar_participante(pid)
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.get("/admin/api/respuestas")
 def api_respuestas():
     """Export estructurado de todo lo relevado -- pensado para que Catequil (u otro

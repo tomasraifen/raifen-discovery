@@ -123,6 +123,17 @@ def actualizar_datos_participante(pid: str, nombre: str, cargo: str, email: str)
         )
 
 
+def eliminar_participante(pid: str):
+    """Borra al participante y sus datos asociados (respuestas viven en la misma fila;
+    adjuntos y reglas de negocio se limpian aparte). Usado para sacar duplicados creados
+    por re-siembra de participantes sin email (ver sembrar_participantes -- sin email no
+    hay como dedupear)."""
+    with _conn() as c:
+        c.execute("DELETE FROM adjuntos WHERE participante_id = ?", (pid,))
+        c.execute("UPDATE reglas_negocio SET participante_id = NULL WHERE participante_id = ?", (pid,))
+        c.execute("DELETE FROM participantes WHERE id = ?", (pid,))
+
+
 def obtener(pid: str) -> dict | None:
     with _conn() as c:
         row = c.execute("SELECT * FROM participantes WHERE id = ?", (pid,)).fetchone()
