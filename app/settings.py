@@ -17,6 +17,14 @@ if not os.path.isabs(UPLOADS_DIR):
     UPLOADS_DIR = str(ROOT / UPLOADS_DIR)
 Path(UPLOADS_DIR).mkdir(parents=True, exist_ok=True)
 
+# Logo del cliente, subido desde el admin -- vive en el mismo volumen persistente que
+# UPLOADS_DIR (bind mount /data en Coolify), no en app/static/ (eso es codigo, se
+# reemplaza en cada deploy y es compartido entre todas las instancias).
+LOGO_DIR = os.getenv("LOGO_DIR") or str(ROOT / "data" / "branding")
+if not os.path.isabs(LOGO_DIR):
+    LOGO_DIR = str(ROOT / LOGO_DIR)
+Path(LOGO_DIR).mkdir(parents=True, exist_ok=True)
+
 BASIC_AUTH_USER = os.getenv("BASIC_AUTH_USER", "admin")
 BASIC_AUTH_PASS = os.getenv("BASIC_AUTH_PASS", "Raifen2026!")
 

@@ -13,6 +13,7 @@ ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV DB_PATH=/data/discovery.db
 ENV UPLOADS_DIR=/data/adjuntos
+ENV LOGO_DIR=/data/branding
 
 EXPOSE 8000
 

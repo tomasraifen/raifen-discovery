@@ -72,14 +72,16 @@
     <div class="modal-caja">
       <button class="cerrar" onclick="cerrarModal('modal-editar-proyecto')">✕</button>
       <h2>Editar datos del proyecto</h2>
-      <form method="post" action="/admin/proyecto" style="display:flex;flex-direction:column;gap:12px;">
+      <form method="post" action="/admin/proyecto" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:12px;">
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label><input type="text" name="cliente" value="{{ proyecto.cliente }}" style="width:100%;" required></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Proyecto</label><input type="text" name="proyecto" value="{{ proyecto.proyecto or '' }}" style="width:100%;"></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Vertical</label><input type="text" name="vertical" value="{{ proyecto.vertical or '' }}" style="width:100%;"></div>
         <div>
-          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Logo del cliente (URL de una imagen)</label>
-          <input type="url" name="logo_url" value="{{ proyecto.logo_url or '' }}" placeholder="https://..." style="width:100%;">
-          <p class="muted" style="margin:4px 0 0;">Se muestra al lado del nombre del proyecto en el panel general. Vacío = se muestran las iniciales del cliente.</p>
+          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Logo del cliente</label>
+          {% if proyecto.logo_url %}<p class="muted" style="margin:0 0 6px;">Actual: <a href="{{ proyecto.logo_url }}" target="_blank">{{ proyecto.logo_url }}</a></p>{% endif %}
+          <input type="file" name="logo_file" accept="image/*" style="width:100%;margin-bottom:8px;">
+          <input type="url" name="logo_url" value="{{ proyecto.logo_url or '' }}" placeholder="...o pegar una URL en vez de subir un archivo" style="width:100%;">
+          <p class="muted" style="margin:4px 0 0;">Se muestra al lado del nombre del proyecto en el panel general. Si subís un archivo, gana sobre la URL. Vacío = se muestran las iniciales del cliente.</p>
         </div>
         <div><button class="btn secundario" type="submit">Guardar</button></div>
       </form>

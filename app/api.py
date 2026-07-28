@@ -24,6 +24,7 @@ from .auth_middleware import BasicAuthMiddleware
 app = FastAPI(title="Raifen Discovery")
 app.add_middleware(BasicAuthMiddleware)
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+app.mount("/branding", StaticFiles(directory=settings.LOGO_DIR), name="branding")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["brand_name"] = settings.BRAND_NAME
 templates.env.globals["admin_review_email"] = settings.ADMIN_REVIEW_EMAIL
@@ -167,6 +168,16 @@ async def actualizar_proyecto(request: Request):
     nombre_proyecto = (form.get("proyecto") or "").strip()
     vertical = (form.get("vertical") or "").strip()
     logo_url = (form.get("logo_url") or "").strip()
+
+    logo_file = form.get("logo_file")
+    if logo_file is not None and getattr(logo_file, "filename", ""):
+        contenido = await logo_file.read()
+        ext = Path(logo_file.filename).suffix.lower() or ".png"
+        for viejo in Path(settings.LOGO_DIR).glob("logo.*"):
+            viejo.unlink(missing_ok=True)  # no acumular logos viejos de subidas anteriores
+        (Path(settings.LOGO_DIR) / f"logo{ext}").write_bytes(contenido)
+        logo_url = f"/branding/logo{ext}"
+
     if not cliente:
         raise HTTPException(400, "falta el nombre del cliente")
     settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical, logo_url)
