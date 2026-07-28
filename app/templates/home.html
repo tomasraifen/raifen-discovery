@@ -76,6 +76,11 @@
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label><input type="text" name="cliente" value="{{ proyecto.cliente }}" style="width:100%;" required></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Proyecto</label><input type="text" name="proyecto" value="{{ proyecto.proyecto or '' }}" style="width:100%;"></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Vertical</label><input type="text" name="vertical" value="{{ proyecto.vertical or '' }}" style="width:100%;"></div>
+        <div>
+          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Logo del cliente (URL de una imagen)</label>
+          <input type="url" name="logo_url" value="{{ proyecto.logo_url or '' }}" placeholder="https://..." style="width:100%;">
+          <p class="muted" style="margin:4px 0 0;">Se muestra al lado del nombre del proyecto en el panel general. Vacío = se muestran las iniciales del cliente.</p>
+        </div>
         <div><button class="btn secundario" type="submit">Guardar</button></div>
       </form>
     </div>

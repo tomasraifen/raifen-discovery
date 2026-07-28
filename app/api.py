@@ -166,9 +166,10 @@ async def actualizar_proyecto(request: Request):
     cliente = (form.get("cliente") or "").strip()
     nombre_proyecto = (form.get("proyecto") or "").strip()
     vertical = (form.get("vertical") or "").strip()
+    logo_url = (form.get("logo_url") or "").strip()
     if not cliente:
         raise HTTPException(400, "falta el nombre del cliente")
-    settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical)
+    settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical, logo_url)
     return RedirectResponse(url="/", status_code=303)
 
 
