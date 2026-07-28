@@ -161,6 +161,18 @@ async def actualizar_lo_que_sabemos(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.post("/admin/dbml")
+async def actualizar_dbml(request: Request):
+    form = await request.form()
+    archivo = form.get("archivo")
+    if archivo is not None and getattr(archivo, "filename", ""):
+        texto = (await archivo.read()).decode("utf-8", errors="replace")
+    else:
+        texto = (form.get("texto") or "").strip()
+    settings.actualizar_dbml(_proyecto(), texto)
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/admin/proyecto")
 async def actualizar_proyecto(request: Request):
     form = await request.form()

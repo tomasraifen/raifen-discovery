@@ -22,6 +22,7 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
           <a class="btn secundario" href="/admin/editor">Formularios</a>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-regla')">Reglas negocio</button>
+          <button type="button" class="btn secundario" onclick="abrirModal('modal-dbml')">Modelo de datos</button>
         </div>
       </div>
       <div style="flex:1;min-width:260px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;">
@@ -52,6 +53,7 @@
         <li><b>Participantes</b> — agrega una persona nueva, con los formularios que le correspondan (puede ser más de uno, o ninguno si es solo un contacto sin nada que completar).</li>
         <li><b>Formularios</b> — crea formularios, temas y preguntas nuevas. Acá se arma el banco de preguntas de cada área.</li>
         <li><b>Reglas negocio</b> — agrega una regla de negocio nueva (una definición real de cómo funciona algo en la práctica, sacada de las respuestas). Muestra las que ya existen para no repetir.</li>
+        <li><b>Modelo de datos</b> — pega o subí el modelo de datos propuesto en formato DBML. Se renderiza como diagrama interactivo acá abajo y en el panel de cada participante, para validarlo con el cliente antes de que se implemente de verdad.</li>
         <li><b>Informe</b> — arma y manda el documento de revisión con las secciones que elijas. Siempre va a un correo interno de Raifen — nunca directo al cliente.</li>
         <li><b>Vista usuario</b> — muestra el panel general tal como lo ve cualquier participante, sin tener que abrir el link de nadie en particular.</li>
         <li><b>Instructivo</b> — esta ventana.</li>
@@ -103,6 +105,9 @@
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_participantes" checked> Participantes por formulario</label>
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_progreso" checked> Progreso de respuestas por área</label>
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_reglas" checked> Reglas de negocio confirmadas</label>
+          {% if proyecto.dbml and proyecto.dbml.strip() %}
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_dbml" checked> Modelo de datos propuesto (fuente DBML)</label>
+          {% endif %}
         </div>
         <button class="btn violeta" type="submit">Enviar</button>
       </form>
@@ -135,6 +140,22 @@
     </div>
   </div>
 
+  <div class="modal-fondo" id="modal-dbml">
+    <div class="modal-caja" style="max-width:820px;">
+      <button class="cerrar" onclick="cerrarModal('modal-dbml')">✕</button>
+      <h2>Modelo de datos propuesto (DBML)</h2>
+      <p class="muted" style="margin:0 0 12px;">Se renderiza como diagrama interactivo (zoom, pan, click en una tabla resalta sus relaciones) en este panel y en el panel de cada participante — sirve para validar el modelo con el cliente antes de que Oscar lo implemente. Formato <a href="https://dbml.dbdiagram.io/docs/" target="_blank" rel="noopener">DBML</a>.</p>
+      <form method="post" action="/admin/dbml" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;">
+        <textarea name="texto" rows="14" style="width:100%;font-family:monospace;font-size:13px;" placeholder="Table usuarios {&#10;  id integer [pk]&#10;  nombre varchar&#10;}&#10;&#10;Table pedidos {&#10;  id integer [pk]&#10;  usuario_id integer [ref: > usuarios.id]&#10;}">{{ proyecto.dbml or "" }}</textarea>
+        <div>
+          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">...o subir un archivo .dbml (reemplaza el texto de arriba)</label>
+          <input type="file" name="archivo" accept=".dbml,.txt" style="width:100%;">
+        </div>
+        <div><button class="btn secundario" type="submit">Guardar</button></div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-fondo" id="modal-agregar-participante">
     <div class="modal-caja">
       <button class="cerrar" onclick="cerrarModal('modal-agregar-participante')">✕</button>
@@ -155,6 +176,18 @@
       </form>
     </div>
   </div>
+
+  {% if proyecto.dbml and proyecto.dbml.strip() %}
+  <div class="card">
+    <h2 style="margin-top:0;">Modelo de datos propuesto</h2>
+    <p class="muted" style="margin:0 0 10px;">Arrastrar para mover, rueda del mouse para zoom, click en una tabla para resaltar sus relaciones. Mismo diagrama que ve cada participante en su panel.</p>
+    <div class="dbml-widget" id="dbml-admin"></div>
+  </div>
+  <script src="/static/dbml.js"></script>
+  <script>
+    initDbmlDiagram(document.getElementById("dbml-admin"), {{ proyecto.dbml | tojson }});
+  </script>
+  {% endif %}
 
   <div class="grid-2">
     {% if resumen_temas %}

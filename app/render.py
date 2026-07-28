@@ -6,7 +6,7 @@ cliente a mano si corresponde.
 Las secciones a incluir son configurables (Tom decide que mandar cada vez, no siempre
 todo) -- ver Fase 4/enviar_aprobacion en api.py."""
 
-SECCIONES_VALIDAS = {"lo_que_sabemos", "stakeholders", "participantes", "reglas", "progreso"}
+SECCIONES_VALIDAS = {"lo_que_sabemos", "stakeholders", "participantes", "reglas", "progreso", "dbml"}
 
 
 def documento_aprobacion(
@@ -47,6 +47,12 @@ def documento_aprobacion(
         lineas += ["", "# Progreso de respuestas por área", "", "| Área | Cobertura |", "|---|---|"]
         for t in resumen_temas:
             lineas.append(f"| {t['titulo']} | {t['cubiertas']}/{t['total']} |")
+
+    if "dbml" in secciones and (proyecto.get("dbml") or "").strip():
+        # El diagrama interactivo solo existe renderizado en el navegador (app/static/dbml.js) --
+        # acá va la fuente DBML en un bloque de código, para que quien reciba el documento
+        # pueda pegarla en cualquier visualizador de DBML si no tiene el link a la plataforma a mano.
+        lineas += ["", "# Modelo de datos propuesto", "", "```dbml", proyecto["dbml"].strip(), "```"]
 
     if "reglas" in secciones:
         confirmadas = [r for r in reglas if r["estado"] in ("confirmada", "entregada_oscar", "validada_consume")]

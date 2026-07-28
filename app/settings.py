@@ -301,6 +301,16 @@ def actualizar_lo_que_sabemos(proyecto: dict, texto: str) -> dict:
     return proyecto
 
 
+def actualizar_dbml(proyecto: dict, texto: str) -> dict:
+    """Modelo de datos propuesto, en formato DBML (dbml.org) -- se parsea y renderiza
+    client-side (app/static/dbml.js), visible tanto en el panel de admin como en el
+    panel de cada participante, para validar el modelo con el cliente antes de que Oscar
+    lo implemente de verdad."""
+    proyecto["dbml"] = texto
+    guardar_proyecto(proyecto)
+    return proyecto
+
+
 def actualizar_datos_proyecto(proyecto: dict, cliente: str, nombre_proyecto: str, vertical: str, logo_url: str = "") -> dict:
     proyecto["cliente"] = cliente
     proyecto["proyecto"] = nombre_proyecto

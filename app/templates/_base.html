@@ -140,6 +140,21 @@
       border-radius: 10px; padding: 12px 14px; font-size: 13.5px;
     }
     .stepper .paso b { display: block; font-family: var(--font-heading); color: var(--mint); margin-bottom: 4px; font-size: 13px; }
+    .dbml-widget { position: relative; }
+    .dbml-toolbar { position: absolute; top: 8px; right: 8px; z-index: 5; display: flex; gap: 4px; }
+    .dbml-viewport { width: 100%; height: 520px; overflow: hidden; border-radius: 10px; background: var(--card-inset); border: 1px solid var(--borde); cursor: grab; position: relative; user-select: none; }
+    .dbml-viewport.dragging { cursor: grabbing; }
+    .dbml-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+    .dbml-lines { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+    .dbml-lines path { stroke: var(--cyan); stroke-width: 1.5; fill: none; opacity: .55; transition: opacity .15s; }
+    .dbml-lines path.dim { opacity: .06; }
+    .dbml-table { position: absolute; width: 220px; background: var(--card); border: 2px solid var(--borde); border-radius: 8px; overflow: hidden; font-size: 12.5px; transition: opacity .15s, border-color .15s; }
+    .dbml-table.dim { opacity: .25; }
+    .dbml-table.activa { border-color: var(--cyan); }
+    .dbml-table-header { background: var(--violeta); color: #fff; font-weight: 700; padding: 6px 10px; font-family: var(--font-heading); cursor: pointer; }
+    .dbml-col { display: flex; justify-content: space-between; padding: 4px 10px; border-top: 1px solid var(--borde); gap: 8px; }
+    .dbml-col.pk { font-weight: 700; color: var(--mint); }
+    .dbml-col-tipo { color: var(--muted); font-size: 11px; white-space: nowrap; }
   </style>
 </head>
 <body>
