@@ -38,13 +38,33 @@
   <div class="modal-fondo" id="modal-instrucciones">
     <div class="modal-caja">
       <button class="cerrar" onclick="cerrarModal('modal-instrucciones')">✕</button>
-      <h2>Cómo operar este proyecto</h2>
-      <div class="stepper">
-        <div class="paso"><b>1. Compartir</b>Copiar el link de cada participante y enviarlo (WhatsApp, correo).</div>
-        <div class="paso"><b>2. Esperar</b>Cada persona completa su formulario a su ritmo — el progreso se ve acá abajo.</div>
-        <div class="paso"><b>3. Curar</b>Con las respuestas, armar reglas de negocio abajo y confirmarlas.</div>
-        <div class="paso"><b>4. Revisar</b>El documento se manda a Raifen para revisión — nunca directo al cliente.</div>
-      </div>
+      <h2>Instructivo — cómo operar este proyecto</h2>
+
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--mint);">Qué es esto</h3>
+      <p style="margin:0 0 16px;">Este portal reemplaza el relevamiento por documento: cada persona del cliente completa un formulario tipado a su ritmo (sin IA de por medio), y acá se cura lo que va respondiendo hasta armar el documento de reglas de negocio que se manda a revisión interna de Raifen.</p>
+
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--mint);">Los links personales</h3>
+      <p style="margin:0 0 16px;">Cada participante tiene un link único (<code>/r/&lt;token&gt;</code>) que se genera solo al agregarlo — no hace falta usuario ni contraseña, quien lo abre entra directo. Se copia con el botón "📋 Copiar" de la tabla <b>Stakeholders</b>, más abajo, y se manda por WhatsApp o correo. Importante: cada link es de UNA sola persona — si dos personas necesitan responder, cada una necesita su propio link (agregalas por separado desde "Participantes"), nunca reenviar el mismo link a más de uno.</p>
+
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--mint);">Qué hace cada botón del Panel de administración</h3>
+      <ul style="margin:0 0 16px;">
+        <li><b>Proyecto</b> — edita el nombre del cliente, del proyecto y el vertical.</li>
+        <li><b>Participantes</b> — agrega una persona nueva, con los formularios que le correspondan (puede ser más de uno, o ninguno si es solo un contacto sin nada que completar).</li>
+        <li><b>Formularios</b> — crea formularios, temas y preguntas nuevas. Acá se arma el banco de preguntas de cada área.</li>
+        <li><b>Reglas negocio</b> — agrega una regla de negocio nueva (una definición real de cómo funciona algo en la práctica, sacada de las respuestas). Muestra las que ya existen para no repetir.</li>
+        <li><b>Informe</b> — arma y manda el documento de revisión con las secciones que elijas. Siempre va a un correo interno de Raifen — nunca directo al cliente.</li>
+        <li><b>Vista usuario</b> — muestra el panel general tal como lo ve cualquier participante, sin tener que abrir el link de nadie en particular.</li>
+        <li><b>Instructivo</b> — esta ventana.</li>
+      </ul>
+
+      <h3 style="margin:0 0 6px;font-size:15px;color:var(--mint);">Flujo de trabajo</h3>
+      <ol style="margin:0;">
+        <li>Agregar los participantes con sus formularios asignados ("Participantes").</li>
+        <li>Copiar el link personal de cada uno (tabla Stakeholders) y enviarlo.</li>
+        <li>Cada persona completa su formulario a su ritmo — puede escribir o grabar en voz, y volver cuando quiera; nada se pierde.</li>
+        <li>A medida que responden, revisar el progreso acá abajo y curar reglas de negocio ("Reglas negocio").</li>
+        <li>Cuando corresponda, armar y mandar el "Informe" para revisión interna de Raifen.</li>
+      </ol>
     </div>
   </div>
 
@@ -56,11 +76,6 @@
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Cliente</label><input type="text" name="cliente" value="{{ proyecto.cliente }}" style="width:100%;" required></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Proyecto</label><input type="text" name="proyecto" value="{{ proyecto.proyecto or '' }}" style="width:100%;"></div>
         <div><label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Vertical</label><input type="text" name="vertical" value="{{ proyecto.vertical or '' }}" style="width:100%;"></div>
-        <div>
-          <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Correo de aprobación del cliente</label>
-          <input type="email" name="correo_aprobacion" value="{{ proyecto.correo_aprobacion or '' }}" style="width:100%;">
-          <p class="muted" style="margin:4px 0 0;">Solo queda como referencia dentro del documento de revisión — nunca es destinatario real del envío.</p>
-        </div>
         <div><button class="btn secundario" type="submit">Guardar</button></div>
       </form>
     </div>
@@ -70,7 +85,6 @@
     <div class="modal-caja">
       <button class="cerrar" onclick="cerrarModal('modal-enviar')">✕</button>
       <h2>Armar documento de revisión</h2>
-      <p class="muted" style="margin:0 0 16px;">El destinatario final del cliente ({{ proyecto.correo_aprobacion }}) nunca lo recibe directo — queda solo anotado como referencia dentro del documento.</p>
       <form method="post" action="/admin/aprobacion/enviar">
         <label class="muted" style="display:block;font-size:12px;margin-bottom:4px;">Enviar a</label>
         <input type="email" name="correo" value="{{ admin_review_email }}" style="width:100%;margin-bottom:16px;" required>
@@ -78,8 +92,8 @@
         <label class="muted" style="display:block;font-size:12px;margin-bottom:6px;">Secciones a incluir</label>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_lo_que_sabemos" checked> Lo que ya sabemos del negocio</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_stakeholders" checked> Stakeholders (matriz única de personas: nombre, cargo, correo — sin duplicados)</label>
-          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_participantes" checked> Participantes por formulario (una fila por asignación — repite a la persona si completa más de uno)</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_stakeholders" checked> Stakeholders</label>
+          <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_participantes" checked> Participantes por formulario</label>
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_progreso" checked> Progreso de respuestas por área</label>
           <label style="font-weight:400;display:flex;align-items:center;gap:8px;"><input type="checkbox" name="incluir_reglas" checked> Reglas de negocio confirmadas</label>
         </div>
@@ -96,6 +110,21 @@
         <textarea name="texto" rows="2" style="width:100%;" placeholder="Ej: una venta se considera válida cuando..." required></textarea>
         <div style="margin-top:8px;"><button class="btn secundario" type="submit">Agregar</button></div>
       </form>
+
+      {% if reglas %}
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--borde);">
+        <p class="muted" style="margin:0 0 8px;font-weight:600;">Ya definidas ({{ reglas | length }}) — para no repetir:</p>
+        <table>
+          <tr><th>Regla</th><th style="width:110px;">Estado</th></tr>
+          {% for r in reglas %}
+          <tr>
+            <td>{{ r.texto }}</td>
+            <td><span class="pill {{ r.estado }}">{{ r.estado }}</span></td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
     </div>
   </div>
 

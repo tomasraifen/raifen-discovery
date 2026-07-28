@@ -73,7 +73,7 @@
     .pregunta:last-child { margin-bottom: 0; }
     .pregunta label.texto-pregunta { display: block; font-weight: 600; margin-bottom: 4px; font-size: 15px; }
     .pregunta .ayuda { display: block; color: var(--muted); font-size: 13px; font-weight: 400; margin: 0 0 10px; line-height: 1.4; }
-    .pregunta textarea, .pregunta input[type=text] {
+    .pregunta textarea, .pregunta input[type=text], .pregunta input[type=number] {
       width: 100%; border: 1px solid var(--borde); border-radius: 8px; padding: 11px 12px; font-size: 15px;
       font-family: inherit; background: var(--card-inset); color: var(--texto);
     }
@@ -177,6 +177,18 @@
               <label><input type="radio" name="op_{{ pregunta.id }}" class="campo-valor" value="no" {% if r and r.valor == "no" %}checked{% endif %}> <span>No</span></label>
             </div>
             <span class="guardado">Guardado ✓</span>
+
+          {% elif pregunta.tipo == "numero" %}
+            <input type="number" step="any" class="campo-valor" placeholder="0" value="{{ r.valor if r else '' }}">
+            <span class="guardado">Guardado ✓</span>
+
+          {% elif pregunta.tipo == "archivo" %}
+            <div class="fila-audio">
+              <button type="button" class="icon-btn btn-archivo-pregunta">📎 {% if r %}Reemplazar archivo{% else %}Adjuntar archivo{% endif %}</button>
+              <input type="file" class="input-archivo-pregunta">
+              <span class="guardado">Guardado ✓</span>
+            </div>
+            <p class="muted archivo-actual" style="margin:6px 0 0;">{% if r %}Archivo actual: {{ r.valor }}{% endif %}</p>
           {% endif %}
         </div>
       {% endfor %}
@@ -253,6 +265,34 @@ document.querySelectorAll(".pregunta").forEach((div) => {
         const seleccionadas = Array.from(div.querySelectorAll("input[type=checkbox]:checked")).map((c) => c.value);
         guardarRespuesta(preguntaId, seleccionadas, "texto", guardadoEl);
       });
+    });
+  } else if (tipo === "numero") {
+    const input = div.querySelector("input[type=number]");
+    input.addEventListener("blur", () => {
+      if (input.value.trim()) guardarRespuesta(preguntaId, input.value.trim(), "texto", guardadoEl);
+    });
+  } else if (tipo === "archivo") {
+    const btnArchivo = div.querySelector(".btn-archivo-pregunta");
+    const inputArchivo = div.querySelector(".input-archivo-pregunta");
+    const actualEl = div.querySelector(".archivo-actual");
+    btnArchivo.addEventListener("click", () => inputArchivo.click());
+    inputArchivo.addEventListener("change", async (ev) => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("pregunta_id", preguntaId);
+      btnArchivo.disabled = true;
+      const resp = await fetch(`/r/${TOKEN}/adjunto`, {method: "POST", body: fd});
+      btnArchivo.disabled = false;
+      if (resp.ok) {
+        const data = await resp.json();
+        actualEl.textContent = `Archivo actual: ${data.nombre_archivo}`;
+        btnArchivo.textContent = "📎 Reemplazar archivo";
+        actualizarProgreso(data.progreso);
+        mostrarGuardado(guardadoEl);
+      }
+      ev.target.value = "";
     });
   }
 });

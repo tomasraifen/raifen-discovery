@@ -17,7 +17,6 @@
 cliente: "Nombre Cliente"
 proyecto: "Datalake <Cliente>"
 vertical: "retail"  # solo informativo/trazabilidad
-correo_aprobacion: "contacto@cliente.com"  # a quien se le manda el documento formal de reglas de negocio
 
 # Contexto previo que Raifen ya tiene del cliente antes de arrancar el relevamiento
 # formal (notas de Ekeko, discovery comercial, investigacion de Nexus). Se le muestra

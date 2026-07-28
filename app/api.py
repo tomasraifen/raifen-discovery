@@ -11,7 +11,7 @@ para revisión interna vía el webhook markdown-raifen."""
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -153,10 +153,9 @@ async def actualizar_proyecto(request: Request):
     cliente = (form.get("cliente") or "").strip()
     nombre_proyecto = (form.get("proyecto") or "").strip()
     vertical = (form.get("vertical") or "").strip()
-    correo_aprobacion = (form.get("correo_aprobacion") or "").strip()
     if not cliente:
         raise HTTPException(400, "falta el nombre del cliente")
-    settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical, correo_aprobacion)
+    settings.actualizar_datos_proyecto(_proyecto(), cliente, nombre_proyecto, vertical)
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -187,7 +186,7 @@ async def crear_pregunta(request: Request, formulario_id: str, tema_id: str):
     form = await request.form()
     texto = (form.get("texto") or "").strip()
     tipo = (form.get("tipo") or "").strip()
-    if not texto or tipo not in ("texto_libre", "opcion_unica", "opcion_multiple", "booleano"):
+    if not texto or tipo not in settings.TIPOS_PREGUNTA:
         raise HTTPException(400, "faltan datos de la pregunta")
     opciones_raw = (form.get("opciones") or "").strip()
     opciones = [o.strip() for o in opciones_raw.splitlines() if o.strip()] if opciones_raw else None
@@ -587,7 +586,11 @@ async def enviar_audio(token: str, pregunta_id: str, file: UploadFile):
 
 
 @app.post("/r/{token}/adjunto")
-async def enviar_adjunto(token: str, file: UploadFile):
+async def enviar_adjunto(token: str, file: UploadFile, pregunta_id: str | None = Form(None)):
+    """Adjunto general (sin pregunta_id, boton "Adjuntar archivo o pantallazo") o
+    respuesta a una pregunta tipo "archivo" (con pregunta_id) -- en ese caso ademas
+    guarda una respuesta con el nombre del archivo, para que cuente en el progreso
+    igual que cualquier otra pregunta respondida."""
     p = store.obtener_por_token(token)
     if not p:
         raise HTTPException(404, "link inválido")
@@ -595,5 +598,15 @@ async def enviar_adjunto(token: str, file: UploadFile):
     nombre = f"{uuid.uuid4().hex}_{file.filename or 'archivo'}"
     ruta = Path(settings.UPLOADS_DIR) / nombre
     ruta.write_bytes(contenido)
-    store.agregar_adjunto(p["id"], "archivo", file.filename or nombre, str(ruta))
-    return JSONResponse({"ok": True, "nombre_archivo": file.filename or nombre})
+    nombre_archivo = file.filename or nombre
+    store.agregar_adjunto(p["id"], "archivo", nombre_archivo, str(ruta), pregunta_id=pregunta_id)
+    respuesta = {"ok": True, "nombre_archivo": nombre_archivo}
+    if pregunta_id:
+        proyecto = _proyecto()
+        pregunta = _pregunta_por_id(proyecto, pregunta_id)
+        if pregunta and pregunta["tipo"] == "archivo":
+            store.guardar_respuesta(p["id"], pregunta_id, nombre_archivo, fuente="archivo")
+            p_actualizado = store.obtener(p["id"])
+            ids_preguntas = {q["id"] for q in settings.preguntas_planas(proyecto, formulario_id=pregunta["formulario_id"])}
+            respuesta["progreso"] = store.progreso_formulario(p_actualizado, ids_preguntas)
+    return JSONResponse(respuesta)

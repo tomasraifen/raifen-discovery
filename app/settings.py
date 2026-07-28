@@ -35,10 +35,8 @@ TRANSCRIBE_API_KEY = os.getenv("TRANSCRIBE_API_KEY", "")
 N8N_MARKDOWN_WEBHOOK = os.getenv("N8N_MARKDOWN_WEBHOOK", "https://n8n.raifen.ai/webhook/markdown-raifen")
 
 # Regla dura: el documento de reglas de negocio NUNCA se manda directo al cliente. Se
-# manda siempre a este correo para que un humano de Raifen lo revise antes de reenviarlo.
-# proyecto["correo_aprobacion"] queda solo como referencia informativa dentro del
-# documento (a quien se lo reenvia Raifen despues de revisarlo), nunca como destinatario
-# real del webhook.
+# manda siempre a este correo para que un humano de Raifen lo revise antes de reenviarlo
+# a mano si corresponde.
 ADMIN_REVIEW_EMAIL = os.getenv("ADMIN_REVIEW_EMAIL", "tomas@raifen.ai")
 
 # Aviso por correo cuando un participante finaliza su formulario -- opcional: si
@@ -52,6 +50,10 @@ MAIL_FROM = os.getenv("MAIL_FROM", "Raifen Discovery <no-reply@raifen.ai>")
 CONFIG_DIR = ROOT / "config"
 
 DEFAULT_FORMULARIO_ID = "principal"
+
+# opcion_unica/opcion_multiple requieren "opciones". numero/archivo no piden opciones ni
+# el boton de grabar por voz (eso solo aplica a texto_libre).
+TIPOS_PREGUNTA = ("texto_libre", "opcion_unica", "opcion_multiple", "booleano", "numero", "archivo")
 
 
 def _normalizar_formularios(proyecto: dict) -> dict:
@@ -291,10 +293,9 @@ def actualizar_lo_que_sabemos(proyecto: dict, texto: str) -> dict:
     return proyecto
 
 
-def actualizar_datos_proyecto(proyecto: dict, cliente: str, nombre_proyecto: str, vertical: str, correo_aprobacion: str) -> dict:
+def actualizar_datos_proyecto(proyecto: dict, cliente: str, nombre_proyecto: str, vertical: str) -> dict:
     proyecto["cliente"] = cliente
     proyecto["proyecto"] = nombre_proyecto
     proyecto["vertical"] = vertical
-    proyecto["correo_aprobacion"] = correo_aprobacion
     guardar_proyecto(proyecto)
     return proyecto
