@@ -177,18 +177,6 @@
     </div>
   </div>
 
-  {% if proyecto.dbml and proyecto.dbml.strip() %}
-  <div class="card">
-    <h2 style="margin-top:0;">Modelo de datos propuesto</h2>
-    <p class="muted" style="margin:0 0 10px;">Arrastrar para mover, rueda del mouse para zoom, click en una tabla para resaltar sus relaciones. Mismo diagrama que ve cada participante en su panel.</p>
-    <div class="dbml-widget" id="dbml-admin"></div>
-  </div>
-  <script src="/static/dbml.js"></script>
-  <script>
-    initDbmlDiagram(document.getElementById("dbml-admin"), {{ proyecto.dbml | tojson }});
-  </script>
-  {% endif %}
-
   <div class="grid-2">
     {% if resumen_temas %}
     <div class="card">
@@ -352,4 +340,16 @@
       </table>
     {% endif %}
   </div>
+
+  {% if proyecto.dbml and proyecto.dbml.strip() %}
+  <div class="card">
+    <h2 style="margin-top:0;">Modelo de datos propuesto</h2>
+    <p class="muted" style="margin:0 0 10px;">Arrastrar para mover, rueda del mouse para zoom, click en una tabla para resaltar sus relaciones. Mismo diagrama que ve cada participante en su panel.</p>
+    <div class="dbml-widget" id="dbml-admin"></div>
+  </div>
+  <script src="/static/dbml.js"></script>
+  <script>
+    initDbmlDiagram(document.getElementById("dbml-admin"), {{ proyecto.dbml | tojson }});
+  </script>
+  {% endif %}
 {% endblock %}

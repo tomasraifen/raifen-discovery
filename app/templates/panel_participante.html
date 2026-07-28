@@ -219,18 +219,6 @@
   </div>
   {% endif %}
 
-  {% if proyecto.dbml and proyecto.dbml.strip() %}
-  <div class="card">
-    <h2 style="margin-top:0;">Modelo de datos propuesto</h2>
-    <p class="muted" style="margin:0 0 10px;">Así se está pensando organizar la información — arrastrar para mover, rueda del mouse para zoom, click en una tabla para ver con qué se relaciona. Si algo no corresponde, coméntenlo con quien coordina el discovery.</p>
-    <div class="dbml-widget" id="dbml-participante"></div>
-  </div>
-  <script src="/static/dbml.js"></script>
-  <script>
-    initDbmlDiagram(document.getElementById("dbml-participante"), {{ proyecto.dbml | tojson }});
-  </script>
-  {% endif %}
-
   {% if reglas_confirmadas %}
   <div class="card">
     <h2 style="margin-top:0;">Reglas de negocio confirmadas</h2>
@@ -241,6 +229,18 @@
       {% endfor %}
     </table>
   </div>
+  {% endif %}
+
+  {% if proyecto.dbml and proyecto.dbml.strip() %}
+  <div class="card">
+    <h2 style="margin-top:0;">Modelo de datos propuesto</h2>
+    <p class="muted" style="margin:0 0 10px;">Así se está pensando organizar la información — arrastrar para mover, rueda del mouse para zoom, click en una tabla para ver con qué se relaciona. Si algo no corresponde, coméntenlo con quien coordina el discovery.</p>
+    <div class="dbml-widget" id="dbml-participante"></div>
+  </div>
+  <script src="/static/dbml.js"></script>
+  <script>
+    initDbmlDiagram(document.getElementById("dbml-participante"), {{ proyecto.dbml | tojson }});
+  </script>
   {% endif %}
 </div>
 
