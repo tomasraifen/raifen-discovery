@@ -65,6 +65,12 @@
     .saber-card { background: var(--saber-bg); border: 1px solid var(--saber-borde); border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; font-size: 14.5px; }
     .saber-card h3 { margin: 0 0 8px; color: var(--violeta); font-size: 14.5px; }
     .saber-card textarea { width: 100%; margin-top: 8px; }
+    .contenido-md h1, .contenido-md h2, .contenido-md h3 { color: var(--violeta); margin: 12px 0 6px; font-size: 14.5px; }
+    .contenido-md h1:first-child, .contenido-md h2:first-child, .contenido-md h3:first-child { margin-top: 0; }
+    .contenido-md p { margin: 0 0 8px; }
+    .contenido-md p:last-child { margin-bottom: 0; }
+    .contenido-md ul, .contenido-md ol { padding-left: 20px; line-height: 1.5; margin: 0 0 8px; }
+    .contenido-md li { margin-bottom: 3px; }
     .progreso-barra { background: var(--borde); border-radius: 999px; height: 8px; overflow: hidden; margin: 12px 0 22px; }
     .progreso-barra > div { background: var(--cyan); height: 100%; transition: width .3s; }
     .tema { background: var(--card); border: 1px solid var(--borde); border-radius: 14px; padding: 24px 26px; margin-bottom: 18px; }
@@ -128,7 +134,7 @@
   {% if proyecto.lo_que_ya_sabemos and proyecto.lo_que_ya_sabemos.strip() %}
   <div class="saber-card">
     <h3>Esto es lo que ya sabemos de su negocio</h3>
-    <p style="margin:0;">{{ proyecto.lo_que_ya_sabemos }}</p>
+    <div class="contenido-md">{{ proyecto.lo_que_ya_sabemos | markdown }}</div>
     <p class="muted" style="margin:8px 0 0;font-size:12.5px;">Si algo de esto ya cambió o no es exacto, se puede indicar acá:</p>
     <textarea id="correcciones" rows="2" placeholder="Ej: ya no usamos ese sistema, lo cambiamos en marzo...">{{ p.correcciones_ya_sabemos or "" }}</textarea>
     <span class="guardado" id="guardado-correcciones">Guardado ✓</span>

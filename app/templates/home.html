@@ -10,23 +10,23 @@
   <div class="card">
     <h2 style="margin-top:0;">Panel de administración</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;">
         <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">General</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
           <button type="button" class="btn secundario" onclick="abrirModal('modal-editar-proyecto')">Proyecto</button>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-participante')">Participantes</button>
         </div>
       </div>
-      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+      <div style="flex:1;min-width:220px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;">
         <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Contenido</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
           <a class="btn secundario" href="/admin/editor">Formularios</a>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-agregar-regla')">Reglas negocio</button>
         </div>
       </div>
-      <div style="flex:1;min-width:260px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;">
+      <div style="flex:1;min-width:260px;background:var(--card-inset);border:1px solid var(--borde);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center;">
         <p class="muted" style="margin:0 0 8px;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;">Útiles</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
           <button type="button" class="btn secundario" onclick="abrirModal('modal-enviar')">Informe</button>
           <a class="btn secundario" href="/admin/panel" target="_blank" rel="noopener">Vista usuario</a>
           <button type="button" class="btn secundario" onclick="abrirModal('modal-instrucciones')">Instructivo</button>
@@ -174,7 +174,7 @@
         <h2 style="margin-top:0;">Lo que ya sabemos del negocio</h2>
         <button type="button" id="btn-expandir-saber" class="icon-btn" title="Agrandar">⤢</button>
       </div>
-      <p class="muted" style="margin:0 0 10px;">Se muestra a cada participante al arrancar su formulario, y en su panel general — transparente: si algo no corresponde, ellos mismos lo corrigen desde ahí.</p>
+      <p class="muted" style="margin:0 0 10px;">Se muestra a cada participante al arrancar su formulario, y en su panel general — transparente: si algo no corresponde, ellos mismos lo corrigen desde ahí. Admite Markdown (<code>## Subtítulo</code>, <code>- lista</code>, <code>**negrita**</code>) para que se vea formateado, como el Instructivo.</p>
       <form method="post" action="/admin/lo-que-sabemos" style="display:flex;flex-direction:column;flex:1;min-height:0;">
         <textarea name="texto" id="texto-lo-que-sabemos" style="width:100%;flex:1;min-height:80px;resize:none;" placeholder="Contexto previo real del cliente (Ekeko, Nexus, notas de discovery comercial) — vacío si todavía no hay nada confirmado.">{{ proyecto.lo_que_ya_sabemos or "" }}</textarea>
         <div style="margin-top:8px;"><button class="btn secundario" type="submit">Guardar</button></div>

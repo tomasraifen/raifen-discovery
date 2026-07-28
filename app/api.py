@@ -11,10 +11,12 @@ para revisión interna vía el webhook markdown-raifen."""
 import uuid
 from pathlib import Path
 
+import markdown as markdown_lib
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from . import formato_empresa, mailer, render, settings, store, transcribe
 from .auth_middleware import BasicAuthMiddleware
@@ -25,6 +27,17 @@ app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["brand_name"] = settings.BRAND_NAME
 templates.env.globals["admin_review_email"] = settings.ADMIN_REVIEW_EMAIL
+
+
+def _render_markdown(texto: str | None) -> Markup:
+    """"Lo que ya sabemos del negocio" se edita como texto plano (textarea) pero se
+    muestra a participantes con formato -- admin puede usar ## subtitulos, listas, etc.
+    Contenido siempre editado por el admin (auth basica), nunca por un participante, asi
+    que renderizarlo como HTML sin escapar es seguro."""
+    return Markup(markdown_lib.markdown(texto or "", extensions=["nl2br"]))
+
+
+templates.env.filters["markdown"] = _render_markdown
 
 
 @app.on_event("startup")
